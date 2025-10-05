@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqx8v2k3x4y5z"]
+
+[ext_resource type="Script" path="res://PixelMain.gd" id="1_pixel_main"]
+
+[node name="PixelGame" type="Node2D"]
+script = ExtResource("1_pixel_main")
+
+

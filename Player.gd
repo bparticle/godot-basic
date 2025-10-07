@@ -19,10 +19,15 @@ const COLLISION_JUMP = Vector2(7, 12)  # Slightly smaller when jumping
 func _ready():
 	# Add player to a group for easy access
 	add_to_group("player")
+	# Listen for room changes to briefly lock input and reset motion
+	if room_manager:
+		room_manager.room_changed.connect(_on_room_changed)
 
 # State
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 var current_animation = ""
+var input_locked_until_ms: int = 0
+@export var input_lock_duration_ms: int = 150
 
 func _physics_process(delta: float) -> void:
 	apply_gravity(delta)
@@ -38,11 +43,13 @@ func apply_gravity(delta: float) -> void:
 		velocity.y += gravity * delta
 
 func handle_jump() -> void:
+	if _is_input_locked():
+		return
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 
 func handle_movement(delta: float) -> void:
-	var direction = Input.get_axis("ui_left", "ui_right")
+	var direction = 0.0 if _is_input_locked() else Input.get_axis("ui_left", "ui_right")
 	
 	if direction != 0:
 		velocity.x = move_toward(velocity.x, direction * SPEED, ACCELERATION * delta)
@@ -84,3 +91,11 @@ func update_collision_shape() -> void:
 			shape.size = COLLISION_WALK
 		"jump":
 			shape.size = COLLISION_JUMP
+
+func _on_room_changed(_room_data, _spawn_pos):
+	# Lock input briefly and reset velocity when entering a new room
+	input_locked_until_ms = Time.get_ticks_msec() + input_lock_duration_ms
+	velocity = Vector2.ZERO
+
+func _is_input_locked() -> bool:
+	return Time.get_ticks_msec() < input_locked_until_ms

@@ -1,7 +1,9 @@
 extends Area2D
 
 # Door that allows room transitions
-@export var target_room: String = "room_2"
+# Leave empty by default; set in Inspector
+@export var target_room: String = ""
+@export var activation_delay: float = 0.3
 
 @onready var room_manager = get_node("/root/RoomManager")
 var is_active: bool = false
@@ -9,8 +11,11 @@ var is_active: bool = false
 func _ready():
 	# Connect to body entered signal
 	body_entered.connect(_on_body_entered)
+	# Warn if target_room is not set
+	if target_room == "":
+		push_warning("Door '%s' has empty target_room; set it in the Inspector" % name)
 	# Add a small delay before door becomes active to prevent immediate re-triggering
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().create_timer(activation_delay).timeout
 	is_active = true
 
 func _on_body_entered(body):

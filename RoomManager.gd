@@ -77,6 +77,8 @@ func change_room(room_id: String):
 	
 	# Get spawn position from room
 	var spawn_marker = current_room_instance.get_node_or_null("PlayerSpawn")
+	if not spawn_marker:
+		push_warning("PlayerSpawn not found in %s" % current_room.scene_path)
 	var spawn_pos = spawn_marker.global_position if spawn_marker else Vector2(64, 64)
 	
 	# Spawn or move player
@@ -91,6 +93,8 @@ func change_room(room_id: String):
 			game_container.move_child(player_instance, -1)
 	
 	player_instance.global_position = spawn_pos
+	# Ensure player starts stationary after room change
+	player_instance.velocity = Vector2.ZERO
 	
 	# Update spawn point in HealthManager
 	var health_manager = get_node_or_null("/root/HealthManager")

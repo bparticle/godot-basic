@@ -36,6 +36,7 @@ position = Vector2(79, 49)
 [node name="Door" type="Area2D" parent="."]
 position = Vector2(120, 64)
 script = ExtResource("3_door_script")
+target_room = "room_2"
 
 [node name="Sprite2D" type="Sprite2D" parent="Door"]
 position = Vector2(-113, -56)

@@ -28,7 +28,6 @@ func _on_health_changed(current_lives: int, max_lives: int):
 	# Create heart texture rects
 	for i in range(max_lives):
 		var heart_rect = TextureRect.new()
-		heart_rect.texture = heart_texture
 		heart_rect.stretch_mode = TextureRect.STRETCH_KEEP
 		heart_rect.custom_minimum_size = Vector2(8, 8)
 		

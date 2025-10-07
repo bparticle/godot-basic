@@ -13,6 +13,8 @@ var player: CharacterBody2D
 func _ready():
 	# Get viewport size
 	viewport_size = get_viewport().get_visible_rect().size
+	# Keep viewport size in sync if window/viewport changes
+	get_viewport().size_changed.connect(func(): viewport_size = get_viewport().get_visible_rect().size)
 	
 	# Connect to room changes
 	if room_manager:

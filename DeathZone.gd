@@ -4,6 +4,7 @@ extends Area2D
 # Typically used for pits, hazards, or out-of-bounds areas
 
 @onready var health_manager = get_node("/root/HealthManager")
+@export var activation_delay: float = 0.3
 var is_active = false
 
 func _ready():
@@ -11,7 +12,7 @@ func _ready():
 	body_entered.connect(_on_body_entered)
 	
 	# Delay activation to prevent triggering on spawn
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().create_timer(activation_delay).timeout
 	is_active = true
 
 func _on_body_entered(body):

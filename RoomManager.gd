@@ -38,8 +38,7 @@ func setup_rooms():
 	# Define all rooms with their scene paths
 	rooms["room_1"] = RoomData.new("room_1", "res://Room1.tscn", 128.0, 128.0)
 	rooms["room_2"] = RoomData.new("room_2", "res://Room2.tscn", 256.0, 128.0)
-	# Add more rooms as needed
-	# rooms["room_3"] = RoomData.new("room_3", "res://Room3.tscn", 192.0, 192.0)
+	rooms["room_3"] = RoomData.new("room_3", "res://Room3.tscn", 256.0, 128.0)
 
 func set_game_container(container: Node2D):
 	game_container = container
@@ -55,6 +54,7 @@ func cleanup():
 	game_container = null
 
 func change_room(room_id: String):
+	print("=== CHANGE_ROOM called with: ", room_id, " ===")
 	if not rooms.has(room_id):
 		print("Room '", room_id, "' not found!")
 		return

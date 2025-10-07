@@ -1,8 +1,22 @@
-[gd_scene load_steps=4 format=3 uid="uid://cco57vv0ye3rr"]
+[gd_scene load_steps=6 format=3 uid="uid://cco57vv0ye3rr"]
 
 [ext_resource type="Script" path="res://GameOver.gd" id="1_gameover_script"]
 
+[sub_resource type="SystemFont" id="system_font"]
+antialiasing = 0
+hinting = 0
+subpixel_positioning = 0
+
 [sub_resource type="Theme" id="theme_pixel"]
+default_font = SubResource("system_font")
+
+[sub_resource type="StyleBoxFlat" id="button_hover"]
+bg_color = Color(0.3, 0.3, 0.35, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7, 0.7, 0.7, 1)
 
 [sub_resource type="StyleBoxFlat" id="button_normal"]
 bg_color = Color(0.2, 0.2, 0.25, 1)
@@ -60,12 +74,14 @@ layout_mode = 2
 [node name="RestartButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(60, 16)
 layout_mode = 2
+theme_override_styles/hover = SubResource("button_hover")
 theme_override_styles/normal = SubResource("button_normal")
 text = "Restart"
 
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(60, 16)
 layout_mode = 2
+theme_override_styles/hover = SubResource("button_hover")
 theme_override_styles/normal = SubResource("button_normal")
 text = "Quit"
 

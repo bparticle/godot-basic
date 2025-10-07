@@ -33,18 +33,18 @@ tile_set = ExtResource("1_tileset")
 [node name="PlayerSpawn" type="Marker2D" parent="."]
 position = Vector2(79, 49)
 
-[node name="DoorToRoom2" type="Area2D" parent="."]
+[node name="Door" type="Area2D" parent="."]
 position = Vector2(120, 64)
 script = ExtResource("3_door_script")
 
-[node name="Sprite2D" type="Sprite2D" parent="DoorToRoom2"]
+[node name="Sprite2D" type="Sprite2D" parent="Door"]
 position = Vector2(-113, -56)
 texture = ExtResource("2_flag_tex")
 centered = false
 region_enabled = true
 region_rect = Rect2(16, 0, 8, 16)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DoorToRoom2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Door"]
 position = Vector2(-109, -48)
 shape = SubResource("1_rect_shape")
 

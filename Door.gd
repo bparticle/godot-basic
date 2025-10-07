@@ -12,5 +12,5 @@ func _ready():
 func _on_body_entered(body):
 	# Check if the body is the player
 	if body.is_in_group("player"):
-		# Change to target room (player will be spawned at room's PlayerSpawn marker)
-		room_manager.change_room(target_room)
+		# Use call_deferred to avoid physics callback issues
+		room_manager.call_deferred("change_room", target_room)

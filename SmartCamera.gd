@@ -32,7 +32,7 @@ func _process(delta: float):
 	# Smoothly move camera towards target position (faster follow speed)
 	global_position = global_position.lerp(target_position, follow_speed * delta * 2.0)
 
-func _on_room_changed(room_data, spawn_pos):
+func _on_room_changed(_room_data, spawn_pos):
 	# Get player reference
 	if room_manager:
 		player = room_manager.get_player()

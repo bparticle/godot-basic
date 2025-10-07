@@ -1,11 +1,24 @@
-[gd_scene load_steps=5 format=4 uid="uid://c881bufqvgtmd"]
+[gd_scene load_steps=10 format=4 uid="uid://c881bufqvgtmd"]
 
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://arc_tileset.tres" id="1_tileset"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="2_flag_tex"]
 [ext_resource type="Script" path="res://Door.gd" id="3_door_script"]
+[ext_resource type="Script" path="res://DeathZone.gd" id="4_death_script"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
+
+[sub_resource type="RectangleShape2D" id="2_death_shape"]
+size = Vector2(128, 20)
+
+[sub_resource type="RectangleShape2D" id="3_death_shape_left"]
+size = Vector2(20, 128)
+
+[sub_resource type="RectangleShape2D" id="4_death_shape_right"]
+size = Vector2(20, 128)
+
+[sub_resource type="RectangleShape2D" id="5_death_shape_top"]
+size = Vector2(128, 20)
 
 [node name="Room1" type="Node2D"]
 
@@ -34,3 +47,31 @@ region_rect = Rect2(16, 0, 8, 16)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="DoorToRoom2"]
 position = Vector2(-109, -48)
 shape = SubResource("1_rect_shape")
+
+[node name="DeathZoneBottom" type="Area2D" parent="."]
+position = Vector2(64, 138)
+script = ExtResource("4_death_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneBottom"]
+shape = SubResource("2_death_shape")
+
+[node name="DeathZoneLeft" type="Area2D" parent="."]
+position = Vector2(-10, 64)
+script = ExtResource("4_death_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneLeft"]
+shape = SubResource("3_death_shape_left")
+
+[node name="DeathZoneRight" type="Area2D" parent="."]
+position = Vector2(138, 64)
+script = ExtResource("4_death_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneRight"]
+shape = SubResource("4_death_shape_right")
+
+[node name="DeathZoneTop" type="Area2D" parent="."]
+position = Vector2(64, -10)
+script = ExtResource("4_death_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneTop"]
+shape = SubResource("5_death_shape_top")

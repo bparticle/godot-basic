@@ -47,6 +47,13 @@ func set_game_container(container: Node2D):
 func load_initial_room(room_id: String = "room_1"):
 	change_room(room_id)
 
+func cleanup():
+	"""Clean up all references - call this before changing to non-game scenes"""
+	current_room = null
+	current_room_instance = null
+	player_instance = null
+	game_container = null
+
 func change_room(room_id: String):
 	if not rooms.has(room_id):
 		print("Room '", room_id, "' not found!")
@@ -85,8 +92,32 @@ func change_room(room_id: String):
 	
 	player_instance.global_position = spawn_pos
 	
+	# Update spawn point in HealthManager
+	var health_manager = get_node_or_null("/root/HealthManager")
+	if health_manager:
+		health_manager.update_spawn_point(spawn_pos, room_id)
+	
 	# Emit signal for camera and other systems
 	room_changed.emit(current_room, spawn_pos)
+
+func respawn_player():
+	"""Respawn player at last spawn point"""
+	var health_manager = get_node_or_null("/root/HealthManager")
+	if not health_manager:
+		return
+	
+	var respawn_room = health_manager.get_last_room_id()
+	var respawn_pos = health_manager.get_last_spawn_position()
+	
+	# If we're in a different room, change to the respawn room
+	if current_room and current_room.id != respawn_room:
+		change_room(respawn_room)
+	else:
+		# Same room, just move player
+		if player_instance:
+			player_instance.global_position = respawn_pos
+			# Reset player velocity
+			player_instance.velocity = Vector2.ZERO
 
 func get_current_room() -> RoomData:
 	return current_room

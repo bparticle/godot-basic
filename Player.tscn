@@ -1,0 +1,72 @@
+[gd_scene load_steps=10 format=3 uid="uid://c1234player"]
+
+[ext_resource type="Script" path="res://Player.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://by01x1bcllc3a" path="res://assets/characters/pimpa.png" id="2_texture"]
+
+[sub_resource type="AtlasTexture" id="frame_idle_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_idle_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump"]
+atlas = ExtResource("2_texture")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_walk_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_walk_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="sprite_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_idle_1")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 4.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_jump")
+}],
+"loop": true,
+"name": &"jump",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_walk_1")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]
+
+[sub_resource type="RectangleShape2D" id="collision_shape"]
+size = Vector2(16, 16)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("sprite_frames")
+animation = &"idle"
+offset = Vector2(0, -8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8)
+shape = SubResource("collision_shape")

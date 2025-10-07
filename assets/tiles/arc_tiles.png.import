@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qucaxj557vr4"
-path="res://.godot/imported/air_8x8.png-f66536b6a8ea2d529212d03b64ac871c.ctex"
+uid="uid://cwdehiv57xp06"
+path="res://.godot/imported/arc_tiles.png-0b15d8b52b8ce0e1464ff8cbb41adc2c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tiles/air_8x8.png"
-dest_files=["res://.godot/imported/air_8x8.png-f66536b6a8ea2d529212d03b64ac871c.ctex"]
+source_file="res://assets/tiles/arc_tiles.png"
+dest_files=["res://.godot/imported/arc_tiles.png-0b15d8b52b8ce0e1464ff8cbb41adc2c.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be55j3qlkqc6u"
-valid=false
+uid="uid://c15dit3sv0rsx"
+path="res://.godot/imported/wall_8x8.png-867b061ac522f0108d03c14b68f847e2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tiles/wall_8x8.png"
+dest_files=["res://.godot/imported/wall_8x8.png-867b061ac522f0108d03c14b68f847e2.ctex"]
 
 [params]
 

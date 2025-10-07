@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcuu0kwpyyees"
-valid=false
+uid="uid://cocb1xbmy2cfp"
+path="res://.godot/imported/water_8x8.png-5584b2471bc739dca1424931eda23735.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tiles/water_8x8.png"
+dest_files=["res://.godot/imported/water_8x8.png-5584b2471bc739dca1424931eda23735.ctex"]
 
 [params]
 

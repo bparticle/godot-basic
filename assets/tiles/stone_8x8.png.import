@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dq7vs2ccvv8h5"
-valid=false
+uid="uid://bde11pj34yons"
+path="res://.godot/imported/stone_8x8.png-b9a179ad5c31e2343c7dfafa2fc4246b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tiles/stone_8x8.png"
+dest_files=["res://.godot/imported/stone_8x8.png-b9a179ad5c31e2343c7dfafa2fc4246b.ctex"]
 
 [params]
 

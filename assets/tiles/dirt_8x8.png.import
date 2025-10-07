@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ch5q8e0ixphma"
-valid=false
+uid="uid://0xlba7ap0etb"
+path="res://.godot/imported/dirt_8x8.png-0791b2a565f2d7300a3e90c8cfddf041.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tiles/dirt_8x8.png"
+dest_files=["res://.godot/imported/dirt_8x8.png-0791b2a565f2d7300a3e90c8cfddf041.ctex"]
 
 [params]
 

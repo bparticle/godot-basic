@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://boqidyxlhw8ho"
-valid=false
+uid="uid://2xdfw6660q64"
+path="res://.godot/imported/grass_8x8.png-e6d9386a3ce8e45bccdf1edb3c600341.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/tiles/grass_8x8.png"
+dest_files=["res://.godot/imported/grass_8x8.png-e6d9386a3ce8e45bccdf1edb3c600341.ctex"]
 
 [params]
 

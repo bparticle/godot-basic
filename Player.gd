@@ -1,62 +1,86 @@
 extends CharacterBody2D
 
-# Player movement constants
-const SPEED = 200.0
-const JUMP_VELOCITY = -400.0
-const ACCELERATION = 1000.0
-const FRICTION = 1000.0
+# Movement constants
+const SPEED = 60.0
+const JUMP_VELOCITY = -220.0
+const ACCELERATION = 400.0
+const FRICTION = 400.0
 
-# Get the gravity from the project settings to be synced with RigidBody nodes
-var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
+# Collision shape sizes for different states
+const COLLISION_IDLE = Vector2(7, 14)
+const COLLISION_WALK = Vector2(7, 14)
+const COLLISION_JUMP = Vector2(7, 12)  # Slightly smaller when jumping
+
+# References
+@onready var animated_sprite = $AnimatedSprite2D
+@onready var collision_shape = $CollisionShape2D
+@onready var room_manager = get_node("/root/RoomManager")
 
 func _ready():
-	# Create the player's visual representation
-	create_player_visual()
-	create_collision_shape()
+	# Add player to a group for easy access
+	add_to_group("player")
 
-func create_player_visual():
-	# Create a simple colored rectangle for the player
-	var sprite = ColorRect.new()
-	sprite.size = Vector2(32, 48)
-	sprite.position = Vector2(-16, -48)  # Center the rectangle
-	sprite.color = Color.BLUE
-	add_child(sprite)
+# State
+var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
+var current_animation = ""
 
-func create_collision_shape():
-	# Create collision shape for the player
-	var collision = CollisionShape2D.new()
-	var shape = RectangleShape2D.new()
-	shape.size = Vector2(32, 48)
-	collision.shape = shape
-	collision.position = Vector2(0, -24)  # Center the collision shape
-	add_child(collision)
-
-func _physics_process(delta):
-	handle_gravity(delta)
-	handle_jumping()
-	handle_horizontal_movement(delta)
-	
-	# Move the character
+func _physics_process(delta: float) -> void:
+	apply_gravity(delta)
+	handle_jump()
+	handle_movement(delta)
+	update_animation()
+	update_collision_shape()  # Update collision based on animation
 	move_and_slide()
+	# Boundary constraints removed - using physics collisions instead
 
-func handle_gravity(delta):
-	# Add gravity
+func apply_gravity(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
-func handle_jumping():
-	# Handle jump
+func handle_jump() -> void:
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 
-func handle_horizontal_movement(delta):
-	# Get input direction
+func handle_movement(delta: float) -> void:
 	var direction = Input.get_axis("ui_left", "ui_right")
 	
 	if direction != 0:
-		# Apply acceleration when moving
 		velocity.x = move_toward(velocity.x, direction * SPEED, ACCELERATION * delta)
 	else:
-		# Apply friction when not moving
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
 
+func update_animation() -> void:
+	# Handle sprite flipping
+	if velocity.x < 0:
+		animated_sprite.flip_h = true
+	elif velocity.x > 0:
+		animated_sprite.flip_h = false
+	
+	# Handle animation states
+	var new_animation = ""
+	if not is_on_floor():
+		new_animation = "jump"
+	elif abs(velocity.x) > 5:
+		new_animation = "walk"
+	else:
+		new_animation = "idle"
+	
+	# Only change if different
+	if new_animation != current_animation:
+		current_animation = new_animation
+		animated_sprite.play(current_animation)
+
+func update_collision_shape() -> void:
+	# Get the shape resource
+	var shape = collision_shape.shape as RectangleShape2D
+	if not shape:
+		return
+	
+	# Adjust collision size based on current animation
+	match current_animation:
+		"idle":
+			shape.size = COLLISION_IDLE
+		"walk":
+			shape.size = COLLISION_WALK
+		"jump":
+			shape.size = COLLISION_JUMP

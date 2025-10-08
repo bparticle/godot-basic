@@ -40,13 +40,10 @@ animations = [{
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("frame_climb_0")
-}, {
-"duration": 1.0,
-"texture": SubResource("frame_climb_0")
 }],
 "loop": true,
 "name": &"climb",
-"speed": 6.0
+"speed": 1.0
 }, {
 "frames": [{
 "duration": 1.0,

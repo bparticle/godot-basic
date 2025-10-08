@@ -1,7 +1,19 @@
-[gd_scene load_steps=10 format=3 uid="uid://c1234player"]
+[gd_scene load_steps=13 format=3 uid="uid://c1234player"]
 
 [ext_resource type="Script" path="res://Player.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://by01x1bcllc3a" path="res://assets/characters/pimpa.png" id="2_texture"]
+
+[sub_resource type="AtlasTexture" id="frame_climb_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(80, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_crouch_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(96, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_crouch_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(112, 0, 16, 16)
 
 [sub_resource type="AtlasTexture" id="frame_idle_0"]
 atlas = ExtResource("2_texture")
@@ -25,6 +37,28 @@ region = Rect2(48, 0, 16, 16)
 
 [sub_resource type="SpriteFrames" id="sprite_frames"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_climb_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_climb_0")
+}],
+"loop": true,
+"name": &"climb",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_crouch_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_crouch_1")
+}],
+"loop": true,
+"name": &"crouch",
+"speed": 4.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("frame_idle_0")

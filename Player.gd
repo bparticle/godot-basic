@@ -4,7 +4,7 @@ extends CharacterBody2D
 const SPEED = 60.0
 const CROUCH_SPEED = 30.0  # Slower when crouching
 const CLIMB_SPEED = 40.0   # Speed when climbing ladders
-const JUMP_VELOCITY = -220.0
+const JUMP_VELOCITY = -240.0
 const ACCELERATION = 400.0
 const FRICTION = 400.0
 

@@ -1,0 +1,7 @@
+{
+  "title": "Pimpa Raka (G4)",
+  "runner": "simple",
+  "args": ["./pimpa-raka.sh"],
+  "version": "0.1.0"
+}
+

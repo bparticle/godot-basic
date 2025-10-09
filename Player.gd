@@ -90,6 +90,12 @@ const LADDER_TILES = [
 	Vector2i(5, 3)   # Half ladder sprite
 ]
 
+# Platform-ladder specific handling
+const PLATFORM_LADDER_TILE = Vector2i(5, 2)  # Platform-ladder tile with one-way collision
+var platform_ladder_pass_through = false  # Flag for passing through platform-ladder
+var platform_ladder_pass_timer = 0.0  # Timer for pass-through duration
+const PLATFORM_LADDER_PASS_DURATION = 0.2  # How long to allow pass-through
+
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
 @export var damage_immunity_duration_ms: int = 500
@@ -115,13 +121,18 @@ func _physics_process(delta: float) -> void:
 	# Process all inputs first
 	process_inputs()
 	
+	# Handle platform-ladder pass-through
+	handle_platform_ladder_pass_through(delta)
+	
 	# Handle state-specific logic
 	if is_climbing:
 		handle_climbing(delta)
 	else:
 		# Reset climbing state tracking when not climbing
 		was_climbing = false
-		apply_gravity(delta)
+		# Only apply gravity if not in platform-ladder pass-through
+		if not platform_ladder_pass_through:
+			apply_gravity(delta)
 		handle_movement(delta)
 	
 	update_animation()
@@ -134,7 +145,10 @@ func process_inputs() -> void:
 	if _is_input_locked():
 		return
 	
-	# Check for ladder interaction first
+	# Check for platform-ladder pass-through first
+	check_platform_ladder_pass_through()
+	
+	# Check for ladder interaction
 	check_ladder_interaction()
 	
 	# Handle crouch input
@@ -603,6 +617,63 @@ func handle_crouch_input() -> void:
 	if is_crouching and is_climbing and not should_be_climbing():
 		is_climbing = false
 
+func handle_platform_ladder_pass_through(delta: float) -> void:
+	"""Handle the platform-ladder pass-through mechanism"""
+	if not platform_ladder_pass_through:
+		return
+	
+	# Update timer
+	platform_ladder_pass_timer += delta
+	
+	# Apply downward velocity to pass through the one-way collision
+	if platform_ladder_pass_timer < PLATFORM_LADDER_PASS_DURATION:
+		# Apply very strong downward velocity to pass through
+		velocity.y = 300.0  # Even faster downward movement
+		
+		# Also directly move the player down to ensure pass-through
+		global_position.y += 4.0  # Direct position adjustment
+		
+		print("PLATFORM LADDER: Passing through, timer: ", platform_ladder_pass_timer, " pos: ", global_position.y)
+	else:
+		# Pass-through duration expired, reset
+		platform_ladder_pass_through = false
+		platform_ladder_pass_timer = 0.0
+		print("PLATFORM LADDER: Pass-through complete")
+
+func check_platform_ladder_pass_through() -> void:
+	"""Check if player is standing on platform-ladder and wants to pass through"""
+	if _is_input_locked():
+		return
+	
+	# Only check if we're on floor and not already climbing
+	if not is_on_floor() or is_climbing:
+		platform_ladder_pass_through = false
+		platform_ladder_pass_timer = 0.0
+		return
+	
+	# Check if we're standing on a platform-ladder tile
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	if not tilemap:
+		return
+	
+	# Check tile directly below player's feet
+	var check_pos = global_position + Vector2(0, 8)  # Check 8 pixels below player center
+	var tile_pos = tilemap.local_to_map(check_pos)
+	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+	
+	# Check if we're standing on platform-ladder and pressing down
+	if tile_atlas_coords == PLATFORM_LADDER_TILE and Input.is_action_pressed("ui_down"):
+		if not platform_ladder_pass_through:
+			platform_ladder_pass_through = true
+			platform_ladder_pass_timer = 0.0
+			print("PLATFORM LADDER: Starting pass-through - standing on platform-ladder tile at ", tile_pos)
+	else:
+		# Reset pass-through if not on platform-ladder or not pressing down
+		if platform_ladder_pass_through:
+			platform_ladder_pass_through = false
+			platform_ladder_pass_timer = 0.0
+			print("PLATFORM LADDER: Pass-through cancelled - not on platform-ladder or not pressing down")
+
 func check_ladder_interaction() -> void:
 	if _is_input_locked():
 		return
@@ -651,8 +722,24 @@ func check_ladder_interaction() -> void:
 	
 	# Handle ladder interaction
 	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
-		is_climbing = true
-		is_crouching = false  # Can't crouch while climbing
+		# Special case: if we're standing ON TOP of platform-ladder and pressing down, don't start climbing
+		# Let the pass-through mechanism handle it instead
+		var should_prevent_climbing = false
+		if Input.is_action_pressed("ui_down"):
+			# Check if we're standing directly on top of a platform-ladder tile
+			var check_pos = global_position + Vector2(0, 8)  # Check 8 pixels below player center
+			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
+			print("LADDER INTERACTION: Standing on platform-ladder: ", should_prevent_climbing, " tile: ", tile_atlas_coords)
+		
+		# Start climbing unless we're standing on platform-ladder with down input
+		if not should_prevent_climbing:
+			is_climbing = true
+			is_crouching = false  # Can't crouch while climbing
+			print("LADDER INTERACTION: Starting climbing")
+		else:
+			print("LADDER INTERACTION: Preventing climbing - standing on platform-ladder with down input")
 	elif not ladder_found:
 		# No ladder nearby, stop climbing
 		if is_climbing:

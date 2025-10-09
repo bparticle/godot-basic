@@ -2,14 +2,14 @@ extends CharacterBody2D
 
 # Movement constants
 const SPEED = 60.0
-const CROUCH_SPEED = 30.0  # Slower when crouching
-const CLIMB_SPEED = 40.0   # Speed when climbing ladders
+const CROUCH_SPEED = 30.0 # Slower when crouching
+const CLIMB_SPEED = 40.0 # Speed when climbing ladders
 const JUMP_VELOCITY = -240.0
 const ACCELERATION = 400.0
 const FRICTION = 400.0
 
 # Jump system - simple UP key jumping
-@export var jump_power: float = 1.0  # Jump power multiplier
+@export var jump_power: float = 1.0 # Jump power multiplier
 
 # Collision system - easily tweakable in Godot editor
 @export_group("Collision Shapes")
@@ -51,50 +51,50 @@ var input_locked_until_ms: int = 0
 @export var input_lock_duration_ms: int = 150
 var is_crouching = false
 var is_climbing = false
-var climb_direction = 0  # -1 for left, 1 for right
-var forced_crouch = false  # When we're forced to crouch due to low ceiling
-var climb_animation_timer = 0.0  # Timer for climb animation
+var climb_direction = 0 # -1 for left, 1 for right
+var forced_crouch = false # When we're forced to crouch due to low ceiling
+var climb_animation_timer = 0.0 # Timer for climb animation
 
 # Blinking state
-var idle_timer = 0.0  # Timer for how long we've been idle
-var blink_timer = 0.0  # Timer for blink animation
-var is_blinking = false  # Whether we're currently in a blink animation
-var last_blink_time = 0.0  # When we last blinked
-var blink_interval_min = 2.0  # Minimum time between blinks
-var blink_interval_max = 5.0  # Maximum time between blinks
-var blink_duration = 0.33  # How long the blink animation lasts (faster now)
-var idle_animation_timer = 0.0  # Timer to sync with idle animation cycle
-var use_mirrored_idle = false  # Whether to use mirrored idle after blinking
-var mirrored_idle_timer = 0.0  # Timer for how long we've been in mirrored idle
-var mirrored_idle_duration = 3.0  # How long to stay in mirrored idle
+var idle_timer = 0.0 # Timer for how long we've been idle
+var blink_timer = 0.0 # Timer for blink animation
+var is_blinking = false # Whether we're currently in a blink animation
+var last_blink_time = 0.0 # When we last blinked
+var blink_interval_min = 2.0 # Minimum time between blinks
+var blink_interval_max = 5.0 # Maximum time between blinks
+var blink_duration = 0.33 # How long the blink animation lasts (faster now)
+var idle_animation_timer = 0.0 # Timer to sync with idle animation cycle
+var use_mirrored_idle = false # Whether to use mirrored idle after blinking
+var mirrored_idle_timer = 0.0 # Timer for how long we've been in mirrored idle
+var mirrored_idle_duration = 3.0 # How long to stay in mirrored idle
 
 # Jump state tracking
-var jump_phase = "none"  # none, up, peak, down, land
-var jump_land_timer = 0.0  # Timer for landing animation
-var jump_land_duration = 0.25  # How long landing animation lasts
-var last_velocity_y = 0.0  # Previous frame's Y velocity for jump phase detection
-var jump_stuck_timer = 0.0  # Timer for detecting stuck jump phases
+var jump_phase = "none" # none, up, peak, down, land
+var jump_land_timer = 0.0 # Timer for landing animation
+var jump_land_duration = 0.25 # How long landing animation lasts
+var last_velocity_y = 0.0 # Previous frame's Y velocity for jump phase detection
+var jump_stuck_timer = 0.0 # Timer for detecting stuck jump phases
 
 # Simple jump system
-var just_jumped_off_ladder = false  # Flag to prevent crouching after ladder jump
+var just_jumped_off_ladder = false # Flag to prevent crouching after ladder jump
 
 # Ladder centering system
-var ladder_center_x: float = 0.0  # X position of the ladder center
-var ladder_centering_strength: float = 200.0  # How strong the centering force is
-var was_climbing: bool = false  # Track if we were climbing in the previous frame
+var ladder_center_x: float = 0.0 # X position of the ladder center
+var ladder_centering_strength: float = 200.0 # How strong the centering force is
+var was_climbing: bool = false # Track if we were climbing in the previous frame
 
 # Ladder tile coordinates (atlas coordinates)
 const LADDER_TILES = [
-	Vector2i(3, 2),  # Original ladder tile
-	Vector2i(5, 2),  # Platform-ladder tile (one-way collision)
-	Vector2i(5, 3)   # Half ladder sprite
+	Vector2i(3, 2), # Original ladder tile
+	Vector2i(5, 2), # Platform-ladder tile (one-way collision)
+	Vector2i(5, 3) # Half ladder sprite
 ]
 
 # Platform-ladder specific handling
-const PLATFORM_LADDER_TILE = Vector2i(5, 2)  # Platform-ladder tile with one-way collision
-var platform_ladder_pass_through = false  # Flag for passing through platform-ladder
-var platform_ladder_pass_timer = 0.0  # Timer for pass-through duration
-const PLATFORM_LADDER_PASS_DURATION = 0.2  # How long to allow pass-through
+const PLATFORM_LADDER_TILE = Vector2i(5, 2) # Platform-ladder tile with one-way collision
+var platform_ladder_pass_through = false # Flag for passing through platform-ladder
+var platform_ladder_pass_timer = 0.0 # Timer for pass-through duration
+const PLATFORM_LADDER_PASS_DURATION = 0.15 # How long to allow pass-through (slightly shorter for snappier feel)
 
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
@@ -102,14 +102,13 @@ const PLATFORM_LADDER_PASS_DURATION = 0.2  # How long to allow pass-through
 @export var spike_knockback_speed: float = 100.0
 @export var spike_knockup_velocity: float = -180.0
 var damage_immunity_until_ms: int = 0
-const SPIKE_ATLAS_COORD: Vector2i = Vector2i(1, 1)  # (col=1,row=1) second column/row in 0-based atlas
+const SPIKE_ATLAS_COORD: Vector2i = Vector2i(1, 1) # (col=1,row=1) second column/row in 0-based atlas
 
 # Death state
 var is_dead = false
 var has_shown_death_knockback = false
 
 func _physics_process(delta: float) -> void:
-	
 	# Always check for spike damage first, even when dead
 	handle_spike_damage()
 	
@@ -136,7 +135,7 @@ func _physics_process(delta: float) -> void:
 		handle_movement(delta)
 	
 	update_animation()
-	update_collision_shape()  # Update collision based on animation
+	update_collision_shape() # Update collision based on animation
 	move_and_slide()
 	# Boundary constraints removed - using physics collisions instead
 
@@ -284,7 +283,7 @@ func update_animation() -> void:
 			"land":
 				new_animation = "jump_land"
 			_:
-				new_animation = "jump_up"  # Fallback to jump_up
+				new_animation = "jump_up" # Fallback to jump_up
 	elif is_crouching:
 		# Use duck animation for idle ducking, crouch animation for crouch walking
 		if abs(velocity.x) > 5:
@@ -328,30 +327,30 @@ func handle_blinking() -> void:
 				mirrored_idle_timer = 0.0
 		
 		# Check if we should start blinking
-		if not is_blinking and idle_timer > 1.0:  # Wait at least 1 second before blinking
+		if not is_blinking and idle_timer > 1.0: # Wait at least 1 second before blinking
 			var time_since_last_blink = idle_timer - last_blink_time
 			var should_blink = time_since_last_blink > randf_range(blink_interval_min, blink_interval_max)
 			
 			if should_blink:
 				# Sync the blink with the idle animation cycle
 				# The idle animation has a 0.5 second cycle (2 frames at 4.0 speed = 0.5s total)
-				var idle_cycle_duration = 0.5  # Matches idle animation speed
+				var idle_cycle_duration = 0.5 # Matches idle animation speed
 				var cycle_progress = fmod(idle_animation_timer, idle_cycle_duration)
 				
 				# Start blinking at the beginning of the next idle cycle
 				var time_to_next_cycle = idle_cycle_duration - cycle_progress
-				if time_to_next_cycle < 0.1:  # If we're very close to cycle start, start immediately
+				if time_to_next_cycle < 0.1: # If we're very close to cycle start, start immediately
 					is_blinking = true
 					blink_timer = 0.0
 					last_blink_time = idle_timer
-					idle_animation_timer = 0.0  # Reset to sync with blink
+					idle_animation_timer = 0.0 # Reset to sync with blink
 	else:
 		# Reset timers when not idle
 		idle_timer = 0.0
 		is_blinking = false
 		blink_timer = 0.0
 		idle_animation_timer = 0.0
-		use_mirrored_idle = false  # Reset mirrored idle when moving
+		use_mirrored_idle = false # Reset mirrored idle when moving
 		mirrored_idle_timer = 0.0
 	
 	# Handle blink animation duration
@@ -360,7 +359,7 @@ func handle_blinking() -> void:
 		if blink_timer >= blink_duration:
 			is_blinking = false
 			blink_timer = 0.0
-			use_mirrored_idle = true  # Switch to mirrored idle after blinking
+			use_mirrored_idle = true # Switch to mirrored idle after blinking
 
 func handle_jump_phases() -> void:
 	"""Handle jump phase transitions for animation"""
@@ -429,9 +428,9 @@ func check_jump_interruption() -> void:
 		if velocity.y >= 0 and jump_phase in ["up", "peak"]:
 			# Add a small timer to prevent premature reset
 			jump_stuck_timer += get_physics_process_delta_time()
-			if jump_stuck_timer > 0.5:  # 0.5 seconds max
+			if jump_stuck_timer > 0.5: # 0.5 seconds max
 				print("JUMP INTERRUPTION: Stuck jump detected, transitioning to down phase")
-				jump_phase = "down"  # Transition to down phase
+				jump_phase = "down" # Transition to down phase
 				jump_stuck_timer = 0.0
 		else:
 			# Reset timer if we're moving properly
@@ -627,11 +626,11 @@ func handle_platform_ladder_pass_through(delta: float) -> void:
 	
 	# Apply downward velocity to pass through the one-way collision
 	if platform_ladder_pass_timer < PLATFORM_LADDER_PASS_DURATION:
-		# Apply very strong downward velocity to pass through
-		velocity.y = 300.0  # Even faster downward movement
+		# Apply strong downward velocity to pass through
+		velocity.y = 250.0 # Strong but not excessive downward movement
 		
-		# Also directly move the player down to ensure pass-through
-		global_position.y += 4.0  # Direct position adjustment
+		# Smooth direct position adjustment based on delta time
+		global_position.y += 4.0 # Direct position adjustment
 		
 		print("PLATFORM LADDER: Passing through, timer: ", platform_ladder_pass_timer, " pos: ", global_position.y)
 	else:
@@ -657,7 +656,7 @@ func check_platform_ladder_pass_through() -> void:
 		return
 	
 	# Check tile directly below player's feet
-	var check_pos = global_position + Vector2(0, 8)  # Check 8 pixels below player center
+	var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
 	var tile_pos = tilemap.local_to_map(check_pos)
 	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 	
@@ -686,10 +685,10 @@ func check_ladder_interaction() -> void:
 	# Check for ladder tiles and find the center position
 	var ladder_found = false
 	var ladder_tile_positions: Array[Vector2i] = []
-	var check_radius = 1  # Check 8 pixels in each direction
+	var check_radius = 1 # Check 8 pixels in each direction
 	
 	# Create a grid of positions to check around the player
-	for x in range(-check_radius, check_radius + 1, 4):  # Check every 4 pixels
+	for x in range(-check_radius, check_radius + 1, 4): # Check every 4 pixels
 		for y in range(-check_radius, check_radius + 1, 4):
 			var check_pos = global_position + Vector2(x, y)
 			var tile_pos = tilemap.local_to_map(check_pos)
@@ -727,7 +726,7 @@ func check_ladder_interaction() -> void:
 		var should_prevent_climbing = false
 		if Input.is_action_pressed("ui_down"):
 			# Check if we're standing directly on top of a platform-ladder tile
-			var check_pos = global_position + Vector2(0, 8)  # Check 8 pixels below player center
+			var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
 			var tile_pos = tilemap.local_to_map(check_pos)
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
@@ -736,7 +735,7 @@ func check_ladder_interaction() -> void:
 		# Start climbing unless we're standing on platform-ladder with down input
 		if not should_prevent_climbing:
 			is_climbing = true
-			is_crouching = false  # Can't crouch while climbing
+			is_crouching = false # Can't crouch while climbing
 			print("LADDER INTERACTION: Starting climbing")
 		else:
 			print("LADDER INTERACTION: Preventing climbing - standing on platform-ladder with down input")
@@ -755,7 +754,7 @@ func handle_climbing(delta: float) -> void:
 		# Just started climbing - immediately center on ladder
 		if ladder_center_x != 0.0:
 			global_position.x = ladder_center_x
-			velocity.x = 0  # Stop any horizontal velocity
+			velocity.x = 0 # Stop any horizontal velocity
 			print("LADDER CENTERING: Immediately centered at X: ", ladder_center_x)
 	
 	# Handle vertical movement on ladder
@@ -775,7 +774,7 @@ func handle_climbing(delta: float) -> void:
 		# Reset jump phase when falling off ladder
 		jump_phase = "none"
 		# Give a small horizontal push in the direction pressed
-		velocity.x = horizontal_input * 50.0  # Small horizontal velocity
+		velocity.x = horizontal_input * 50.0 # Small horizontal velocity
 		# Let gravity take over
 		velocity.y = 0
 	else:
@@ -788,7 +787,7 @@ func handle_climbing(delta: float) -> void:
 func apply_ladder_centering(delta: float) -> void:
 	"""Apply gentle centering force to maintain ladder center during climb"""
 	if ladder_center_x == 0.0:
-		return  # No ladder center calculated yet
+		return # No ladder center calculated yet
 	
 	# Calculate distance from ladder center
 	var distance_from_center = ladder_center_x - global_position.x
@@ -834,8 +833,8 @@ func check_ceiling_clearance_for_full_height() -> bool:
 	
 	query.shape = test_shape
 	query.transform = test_transform
-	query.collision_mask = 1  # Same collision mask as player
-	query.exclude = [self.get_rid()]  # Exclude the player's own collision
+	query.collision_mask = 1 # Same collision mask as player
+	query.exclude = [self.get_rid()] # Exclude the player's own collision
 	
 	# Check if there's any collision
 	var result = space_state.intersect_shape(query, 1)

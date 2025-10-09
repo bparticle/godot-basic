@@ -10,7 +10,7 @@ const FRICTION = 400.0
 
 # Jump system - easily tweakable values
 @export var quick_jump_power: float = 0.5  # Quick tap jump power (0.5 = 50% of normal)
-@export var charged_jump_power: float = 1.1  # Hold and release jump power (1.1 = 110% of normal)
+@export var high_jump_power: float = 1.1  # High jump power (1.1 = 110% of normal)
 
 # Collision system - easily tweakable in Godot editor
 @export_group("Collision Shapes")
@@ -26,8 +26,6 @@ const FRICTION = 400.0
 @export var collision_crouch_size: Vector2 = Vector2(7, 8)
 @export var collision_crouch_offset: Vector2 = Vector2(0, -4)
 
-@export var collision_charge_size: Vector2 = Vector2(7, 14)
-@export var collision_charge_offset: Vector2 = Vector2(0, -7)
 
 @export var collision_climb_size: Vector2 = Vector2(7, 14)
 @export var collision_climb_offset: Vector2 = Vector2(0, -7)
@@ -72,18 +70,12 @@ var mirrored_idle_timer = 0.0  # Timer for how long we've been in mirrored idle
 var mirrored_idle_duration = 3.0  # How long to stay in mirrored idle
 
 # Jump state tracking
-var jump_phase = "none"  # none, off, up, peak, down, land, charge
-var jump_off_timer = 0.0  # Timer for jump-off animation
-var jump_off_duration = 0.25  # How long jump-off animation lasts
+var jump_phase = "none"  # none, up, peak, down, land
 var jump_land_timer = 0.0  # Timer for landing animation
 var jump_land_duration = 0.25  # How long landing animation lasts
 var last_velocity_y = 0.0  # Previous frame's Y velocity for jump phase detection
 
 # Simple jump system
-var is_charging = false  # Whether we're currently charging a jump
-var was_charging = false  # Whether we were charging in the previous frame
-var jump_hold_timer = 0.0  # Timer to detect if we're holding jump
-var jump_hold_threshold = 0.15  # Time in seconds to distinguish tap vs hold (150ms)
 var jump_just_pressed_this_frame = false  # Whether jump was just pressed this frame
 
 # Damage / hazard handling
@@ -99,6 +91,7 @@ var is_dead = false
 var has_shown_death_knockback = false
 
 func _physics_process(delta: float) -> void:
+	
 	# Always check for spike damage first, even when dead
 	handle_spike_damage()
 	
@@ -144,7 +137,7 @@ func process_inputs() -> void:
 
 func handle_jump_input() -> void:
 	"""Handle jump input with proper priority and state management"""
-	# Jump input is now handled in handle_jump_phases() for charge system
+	# Jump input is now handled in handle_jump_phases()
 	# This function is kept for climbing jump override
 	if not Input.is_action_just_pressed("ui_accept"):
 		return
@@ -194,11 +187,8 @@ func handle_movement(delta: float) -> void:
 	var direction = 0.0 if _is_input_locked() else Input.get_axis("ui_left", "ui_right")
 	var current_speed = CROUCH_SPEED if is_crouching else SPEED
 	
-	# Prevent horizontal movement while charging jump
-	if is_charging:
-		# Lock horizontal movement while charging
-		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
-	elif direction != 0:
+	# Handle horizontal movement
+	if direction != 0:
 		velocity.x = move_toward(velocity.x, direction * current_speed, ACCELERATION * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
@@ -238,19 +228,9 @@ func update_animation() -> void:
 		new_animation = "climb"
 		# For climbing, we need to handle the alternating frames manually
 		handle_climb_animation()
-	elif is_crouching:
-		# Use duck animation for idle ducking, crouch animation for crouch walking
-		if abs(velocity.x) > 5:
-			new_animation = "crouch"
-		else:
-			new_animation = "duck"
-	elif is_charging:
-		new_animation = "charge"
-	elif not is_on_floor():
-		# Use specific jump phase animation
+	elif not is_on_floor() or jump_phase != "none":
+		# Jump animations have priority - use specific jump phase animation
 		match jump_phase:
-			"off":
-				new_animation = "jump_off"
 			"up":
 				new_animation = "jump_up"
 			"peak":
@@ -260,7 +240,13 @@ func update_animation() -> void:
 			"land":
 				new_animation = "jump_land"
 			_:
-				new_animation = "jump"  # Fallback to original jump
+				new_animation = "jump_up"  # Fallback to jump_up
+	elif is_crouching:
+		# Use duck animation for idle ducking, crouch animation for crouch walking
+		if abs(velocity.x) > 5:
+			new_animation = "crouch"
+		else:
+			new_animation = "duck"
 	elif abs(velocity.x) > 5:
 		new_animation = "walk"
 	else:
@@ -331,74 +317,37 @@ func handle_blinking() -> void:
 
 func handle_jump_phases() -> void:
 	# Handle jump input detection
-	var jump_pressed = Input.is_action_pressed("ui_accept")
 	var jump_just_pressed = Input.is_action_just_pressed("ui_accept")
-	var jump_just_released = Input.is_action_just_released("ui_accept")
+	var up_pressed = Input.is_action_pressed("ui_up")
 	
 	# Track when jump is just pressed
 	jump_just_pressed_this_frame = jump_just_pressed
 	
 	# Handle jump input when on floor and not crouching/climbing
-	if is_on_floor() and not is_crouching and not is_climbing:
-		if jump_just_pressed:
-			# Jump button just pressed - start micro timer
-			jump_hold_timer = 0.0
-			is_charging = false
-		elif jump_pressed and not is_charging:
-			# We're holding jump - increment timer
-			jump_hold_timer += get_physics_process_delta_time()
-			
-			# If we've held long enough, start charging
-			if jump_hold_timer >= jump_hold_threshold:
-				is_charging = true
-		elif jump_just_released:
-			# Jump button just released
-			if is_charging:
-				# We were charging - do charged jump
-				is_charging = false
-				jump_phase = "off"
-				jump_off_timer = 0.0
-				velocity.y = JUMP_VELOCITY * charged_jump_power
-			elif jump_hold_timer < jump_hold_threshold:
-				# Quick tap - do quick jump
-				jump_phase = "off"
-				jump_off_timer = 0.0
-				velocity.y = JUMP_VELOCITY * quick_jump_power
-			
-			# Reset timer
-			jump_hold_timer = 0.0
-		elif not jump_pressed:
-			# Not holding jump - reset everything
-			is_charging = false
-			jump_hold_timer = 0.0
-	else:
-		# Not on floor or crouching/climbing - reset jump state
-		is_charging = false
-		jump_hold_timer = 0.0
-	
-	# Store charging state for next frame
-	was_charging = is_charging
-	
-	# Handle jump-off animation duration
-	if jump_phase == "off":
-		jump_off_timer += get_physics_process_delta_time()
-		if jump_off_timer >= jump_off_duration:
+	if is_on_floor() and not is_crouching and not is_climbing and jump_just_pressed:
+		# Check if we're holding up for high jump
+		if up_pressed:
+			# High jump: up + jump - go directly to jump_up
 			jump_phase = "up"
+			velocity.y = JUMP_VELOCITY * high_jump_power
+		else:
+			# Normal jump: just jump - go directly to jump_up
+			jump_phase = "up"
+			velocity.y = JUMP_VELOCITY * quick_jump_power
 	
-	# Handle jump phase transitions based on velocity
-	if not is_on_floor() and jump_phase != "off" and jump_phase != "land":
-		# Detect jump peak (velocity changes from negative to positive)
-		if last_velocity_y < 0 and velocity.y >= 0:
+	# Jump-off phase is now skipped - we go directly to jump_up
+	
+	# Handle jump phase transitions based on velocity - only transition once per phase
+	if not is_on_floor() and jump_phase != "land":
+		# Detect jump peak (velocity changes from negative to positive) - only transition once
+		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == "up":
 			jump_phase = "peak"
-		# Detect going down (velocity is positive)
-		elif velocity.y > 0 and jump_phase != "down":
+		# Detect going down (velocity is positive) - only transition once from peak
+		elif velocity.y > 0 and jump_phase == "peak":
 			jump_phase = "down"
-		# Detect going up (velocity is negative and we're not at peak)
-		elif velocity.y < 0 and jump_phase == "peak":
-			jump_phase = "up"
 	
 	# Handle landing phase
-	if is_on_floor() and jump_phase != "none" and jump_phase != "off":
+	if is_on_floor() and jump_phase != "none":
 		jump_phase = "land"
 		jump_land_timer = 0.0
 	
@@ -535,10 +484,7 @@ func update_collision_shape() -> void:
 		"walk":
 			shape.size = collision_walk_size
 			collision_shape.position = collision_walk_offset
-		"charge":
-			shape.size = collision_charge_size
-			collision_shape.position = collision_charge_offset
-		"jump", "jump_off", "jump_up", "jump_peak", "jump_down", "jump_land":
+		"jump", "jump_up", "jump_peak", "jump_down", "jump_land":
 			shape.size = collision_jump_size
 			collision_shape.position = collision_jump_offset
 		"crouch":

@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://c1234player"]
+[gd_scene load_steps=26 format=3 uid="uid://c1234player"]
 
 [ext_resource type="Script" path="res://Player.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://by01x1bcllc3a" path="res://assets/characters/pimpa.png" id="2_texture"]
@@ -10,6 +10,14 @@ region = Rect2(0, 16, 16, 16)
 [sub_resource type="AtlasTexture" id="frame_blink_1"]
 atlas = ExtResource("2_texture")
 region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_charge_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(128, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_charge_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(144, 0, 16, 16)
 
 [sub_resource type="AtlasTexture" id="frame_climb_0"]
 atlas = ExtResource("2_texture")
@@ -43,6 +51,34 @@ region = Rect2(16, 0, 16, 16)
 atlas = ExtResource("2_texture")
 region = Rect2(64, 0, 16, 16)
 
+[sub_resource type="AtlasTexture" id="frame_jump_down"]
+atlas = ExtResource("2_texture")
+region = Rect2(80, 16, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_land_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(128, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_land_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(144, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_off_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(128, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_off_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(144, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_peak"]
+atlas = ExtResource("2_texture")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_jump_up"]
+atlas = ExtResource("2_texture")
+region = Rect2(64, 16, 16, 16)
+
 [sub_resource type="AtlasTexture" id="frame_walk_0"]
 atlas = ExtResource("2_texture")
 region = Rect2(32, 0, 16, 16)
@@ -63,6 +99,17 @@ animations = [{
 "loop": false,
 "name": &"blink",
 "speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_charge_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_charge_1")
+}],
+"loop": true,
+"name": &"charge",
+"speed": 4.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -115,6 +162,52 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("frame_jump_down")
+}],
+"loop": true,
+"name": &"jump_down",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_jump_land_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_jump_land_1")
+}],
+"loop": false,
+"name": &"jump_land",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_jump_off_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("frame_jump_off_1")
+}],
+"loop": false,
+"name": &"jump_off",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_jump_peak")
+}],
+"loop": true,
+"name": &"jump_peak",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_jump_up")
+}],
+"loop": true,
+"name": &"jump_up",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("frame_walk_0")
 }, {
 "duration": 1.0,
@@ -133,9 +226,9 @@ script = ExtResource("1_script")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("sprite_frames")
-animation = &"idle"
+animation = &"jump_off"
 offset = Vector2(0, -8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -8)
+position = Vector2(0, -7)
 shape = SubResource("collision_shape")

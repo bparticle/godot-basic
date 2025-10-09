@@ -8,9 +8,8 @@ const JUMP_VELOCITY = -240.0
 const ACCELERATION = 400.0
 const FRICTION = 400.0
 
-# Jump system - easily tweakable values
-@export var quick_jump_power: float = 0.5  # Quick tap jump power (0.5 = 50% of normal)
-@export var high_jump_power: float = 1.1  # High jump power (1.1 = 110% of normal)
+# Jump system - simple UP key jumping
+@export var jump_power: float = 1.0  # Jump power multiplier
 
 # Collision system - easily tweakable in Godot editor
 @export_group("Collision Shapes")
@@ -74,11 +73,10 @@ var jump_phase = "none"  # none, up, peak, down, land
 var jump_land_timer = 0.0  # Timer for landing animation
 var jump_land_duration = 0.25  # How long landing animation lasts
 var last_velocity_y = 0.0  # Previous frame's Y velocity for jump phase detection
+var jump_stuck_timer = 0.0  # Timer for detecting stuck jump phases
 
 # Simple jump system
-var jump_just_pressed_this_frame = false  # Whether jump was just pressed this frame
 var just_jumped_off_ladder = false  # Flag to prevent crouching after ladder jump
-var skip_land_animation = false  # Flag to skip jump_land animation
 
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
@@ -138,45 +136,40 @@ func process_inputs() -> void:
 	handle_state_transitions()
 
 func handle_jump_input() -> void:
-	"""Handle jump input with proper priority and state management"""
-	# Jump input is now handled in handle_jump_phases()
-	# This function is kept for climbing jump override
-	if not Input.is_action_just_pressed("ui_accept"):
+	"""Handle jump input - UP key while moving"""
+	# Check for UP key press
+	if not Input.is_action_just_pressed("ui_up"):
 		return
 	
+	# Can only jump when on floor and not crouching/climbing
+	if is_on_floor() and not is_crouching and not is_climbing:
+		# Simple jump
+		jump_phase = "up"
+		velocity.y = JUMP_VELOCITY * jump_power
+		print("Jumping! velocity.y: ", velocity.y)
+	
 	# Special case: jumping while climbing
-	if is_climbing:
+	elif is_climbing:
 		# Break out of climbing and jump
 		is_climbing = false
 		
 		# Reset crouching state when jumping off ladder
-		print("BEFORE ladder jump - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
 		is_crouching = false
 		forced_crouch = false
-		just_jumped_off_ladder = true  # Set flag to prevent crouching
-		skip_land_animation = true  # Skip the crouching jump_land animation
-		print("AFTER ladder jump reset - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch, " just_jumped_off_ladder: ", just_jumped_off_ladder)
+		just_jumped_off_ladder = true
 		
-		# Check if we're holding up for high jump (same as regular jump logic)
-		var up_pressed = Input.is_action_pressed("ui_up")
-		if up_pressed:
-			# High jump: up + jump
-			velocity.y = JUMP_VELOCITY * high_jump_power
-		else:
-			# Normal jump: just jump
-			velocity.y = JUMP_VELOCITY * quick_jump_power
-		
-		# Set jump phase for proper animation
+		# Simple jump off ladder
 		jump_phase = "up"
-		# Preserve any horizontal momentum from climbing
-		print("Jumping off ladder! Final state - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
-		return
+		velocity.y = JUMP_VELOCITY * jump_power
+		print("Jumping off ladder! velocity.y: ", velocity.y)
 
 func handle_state_transitions() -> void:
 	"""Handle transitions between different movement states"""
 	# If we were climbing and no longer should be, handle the transition
 	if is_climbing and not should_be_climbing():
 		is_climbing = false
+		# Reset jump phase when transitioning away from climbing
+		jump_phase = "none"
 		# Preserve any existing velocity for smooth transition
 
 func should_be_climbing() -> bool:
@@ -279,9 +272,8 @@ func update_animation() -> void:
 		current_animation = new_animation
 		animated_sprite.play(current_animation)
 		# Debug output for animation changes
-		print("ANIMATION CHANGE: ", new_animation, " is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch, " velocity.x: ", velocity.x)
 		if new_animation in ["crouch", "duck"]:
-			print("PROBLEM: Showing crouch animation!")
+			print("PROBLEM: Showing crouch animation! is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
 	
 	# Handle mirrored idle after blinking
 	if current_animation == "idle" and use_mirrored_idle:
@@ -342,42 +334,25 @@ func handle_blinking() -> void:
 			use_mirrored_idle = true  # Switch to mirrored idle after blinking
 
 func handle_jump_phases() -> void:
-	# Handle jump input detection
-	var jump_just_pressed = Input.is_action_just_pressed("ui_accept")
-	var up_pressed = Input.is_action_pressed("ui_up")
+	"""Handle jump phase transitions for animation"""
+	# Check for jump interruption conditions first
+	check_jump_interruption()
 	
-	# Track when jump is just pressed
-	jump_just_pressed_this_frame = jump_just_pressed
-	
-	# Handle jump input when on floor and not crouching/climbing
-	if is_on_floor() and not is_crouching and not is_climbing and jump_just_pressed:
-		# Check if we're holding up for high jump
-		if up_pressed:
-			# High jump: up + jump - go directly to jump_up
-			jump_phase = "up"
-			velocity.y = JUMP_VELOCITY * high_jump_power
-		else:
-			# Normal jump: just jump - go directly to jump_up
-			jump_phase = "up"
-			velocity.y = JUMP_VELOCITY * quick_jump_power
-	
-	# Jump-off phase is now skipped - we go directly to jump_up
-	
-	# Handle jump phase transitions based on velocity - only transition once per phase
+	# Handle jump phase transitions based on velocity
 	if not is_on_floor() and jump_phase != "land":
-		# Detect jump peak (velocity changes from negative to positive) - only transition once
+		# Detect jump peak (velocity changes from negative to positive)
 		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == "up":
 			jump_phase = "peak"
-		# Detect going down (velocity is positive) - only transition once from peak
+		# Detect going down (velocity is positive)
 		elif velocity.y > 0 and jump_phase == "peak":
 			jump_phase = "down"
 	
 	# Handle landing phase
 	if is_on_floor() and jump_phase != "none":
-		if skip_land_animation:
-			# Skip jump_land animation and go directly to normal state
+		if just_jumped_off_ladder:
+			# Skip jump_land animation for ladder jumps
 			jump_phase = "none"
-			skip_land_animation = false
+			just_jumped_off_ladder = false
 		else:
 			jump_phase = "land"
 			jump_land_timer = 0.0
@@ -388,15 +363,53 @@ func handle_jump_phases() -> void:
 		if jump_land_timer >= jump_land_duration:
 			jump_phase = "none"
 	
-	# Reset jump phase when on floor and not jumping
-	if is_on_floor() and not Input.is_action_pressed("ui_accept"):
-		if jump_phase == "none" or jump_phase == "land":
-			pass  # Already handled
-		else:
-			jump_phase = "none"
-	
 	# Store current velocity for next frame
 	last_velocity_y = velocity.y
+
+func check_jump_interruption() -> void:
+	"""Check for conditions that should interrupt/reset the jump phase"""
+	# Reset jump phase if we're climbing (ladder takes priority)
+	if is_climbing and jump_phase != "none":
+		print("JUMP INTERRUPTION: Climbing detected, resetting jump phase")
+		jump_phase = "none"
+		return
+	
+	# Reset jump phase if we're forced to crouch due to ceiling
+	if forced_crouch and jump_phase != "none":
+		print("JUMP INTERRUPTION: Forced crouch detected, resetting jump phase")
+		jump_phase = "none"
+		return
+	
+	# Reset jump phase if we're manually crouching and on floor
+	if is_crouching and is_on_floor() and jump_phase != "none":
+		print("JUMP INTERRUPTION: Manual crouch on floor detected, resetting jump phase")
+		jump_phase = "none"
+		return
+	
+	# Check for ceiling collision during jump (velocity suddenly stops or reverses)
+	if jump_phase in ["up", "peak"] and velocity.y >= 0 and last_velocity_y < -50:
+		# Player hit ceiling during jump, transition to down phase
+		print("JUMP INTERRUPTION: Ceiling collision detected, transitioning to down phase")
+		jump_phase = "down"
+		return
+	
+	# Reset jump phase if we've been in air too long without proper jump velocity
+	# This handles cases where jump gets stuck due to collision issues
+	if not is_on_floor() and jump_phase != "none":
+		# If we're not moving up and have been in jump phase for too long, reset
+		if velocity.y >= 0 and jump_phase in ["up", "peak"]:
+			# Add a small timer to prevent premature reset
+			jump_stuck_timer += get_physics_process_delta_time()
+			if jump_stuck_timer > 0.5:  # 0.5 seconds max
+				print("JUMP INTERRUPTION: Stuck jump detected, transitioning to down phase")
+				jump_phase = "down"  # Transition to down phase
+				jump_stuck_timer = 0.0
+		else:
+			# Reset timer if we're moving properly
+			jump_stuck_timer = 0.0
+	else:
+		# Reset timer when on floor
+		jump_stuck_timer = 0.0
 
 func handle_spike_damage() -> void:
 	# Respect damage immunity window (but allow visual effects when dead)
@@ -632,6 +645,8 @@ func handle_climbing(delta: float) -> void:
 	if abs(horizontal_input) > 0:
 		# Pressing left or right makes you fall off the ladder
 		is_climbing = false
+		# Reset jump phase when falling off ladder
+		jump_phase = "none"
 		# Give a small horizontal push in the direction pressed
 		velocity.x = horizontal_input * 50.0  # Small horizontal velocity
 		# Let gravity take over

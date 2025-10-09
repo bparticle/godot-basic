@@ -77,6 +77,8 @@ var last_velocity_y = 0.0  # Previous frame's Y velocity for jump phase detectio
 
 # Simple jump system
 var jump_just_pressed_this_frame = false  # Whether jump was just pressed this frame
+var just_jumped_off_ladder = false  # Flag to prevent crouching after ladder jump
+var skip_land_animation = false  # Flag to skip jump_land animation
 
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
@@ -146,8 +148,28 @@ func handle_jump_input() -> void:
 	if is_climbing:
 		# Break out of climbing and jump
 		is_climbing = false
-		velocity.y = JUMP_VELOCITY
+		
+		# Reset crouching state when jumping off ladder
+		print("BEFORE ladder jump - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
+		is_crouching = false
+		forced_crouch = false
+		just_jumped_off_ladder = true  # Set flag to prevent crouching
+		skip_land_animation = true  # Skip the crouching jump_land animation
+		print("AFTER ladder jump reset - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch, " just_jumped_off_ladder: ", just_jumped_off_ladder)
+		
+		# Check if we're holding up for high jump (same as regular jump logic)
+		var up_pressed = Input.is_action_pressed("ui_up")
+		if up_pressed:
+			# High jump: up + jump
+			velocity.y = JUMP_VELOCITY * high_jump_power
+		else:
+			# Normal jump: just jump
+			velocity.y = JUMP_VELOCITY * quick_jump_power
+		
+		# Set jump phase for proper animation
+		jump_phase = "up"
 		# Preserve any horizontal momentum from climbing
+		print("Jumping off ladder! Final state - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
 		return
 
 func handle_state_transitions() -> void:
@@ -256,6 +278,10 @@ func update_animation() -> void:
 	if new_animation != current_animation:
 		current_animation = new_animation
 		animated_sprite.play(current_animation)
+		# Debug output for animation changes
+		print("ANIMATION CHANGE: ", new_animation, " is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch, " velocity.x: ", velocity.x)
+		if new_animation in ["crouch", "duck"]:
+			print("PROBLEM: Showing crouch animation!")
 	
 	# Handle mirrored idle after blinking
 	if current_animation == "idle" and use_mirrored_idle:
@@ -348,8 +374,13 @@ func handle_jump_phases() -> void:
 	
 	# Handle landing phase
 	if is_on_floor() and jump_phase != "none":
-		jump_phase = "land"
-		jump_land_timer = 0.0
+		if skip_land_animation:
+			# Skip jump_land animation and go directly to normal state
+			jump_phase = "none"
+			skip_land_animation = false
+		else:
+			jump_phase = "land"
+			jump_land_timer = 0.0
 	
 	# Handle landing animation duration
 	if jump_phase == "land":
@@ -509,6 +540,16 @@ func handle_crouch_input() -> void:
 	if _is_input_locked():
 		return
 	
+	# Don't allow crouching immediately after jumping off ladder
+	if just_jumped_off_ladder:
+		print("CROUCH INPUT: just_jumped_off_ladder is true, preventing crouching")
+		# Reset the flag after a short delay
+		just_jumped_off_ladder = false
+		is_crouching = false
+		forced_crouch = false
+		print("CROUCH INPUT: Reset complete - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
+		return
+	
 	# Check if down is pressed (alone or with left/right)
 	var down_pressed = Input.is_action_pressed("ui_down")
 	
@@ -521,11 +562,14 @@ func handle_crouch_input() -> void:
 		is_crouching = down_pressed
 	else:
 		# If we're forced to crouch, only allow standing if there's enough ceiling clearance
+		print("CROUCH INPUT: Forced crouch logic - down_pressed: ", down_pressed)
 		if not down_pressed and check_ceiling_clearance_for_full_height():
 			is_crouching = false
 			forced_crouch = false
+			print("CROUCH INPUT: Forced crouch cleared - is_crouching: ", is_crouching)
 		else:
 			is_crouching = true
+			print("CROUCH INPUT: Forced crouch maintained - is_crouching: ", is_crouching)
 	
 	# If we were climbing, stop climbing when crouching (but not when near a ladder and trying to climb)
 	if is_crouching and is_climbing and not should_be_climbing():
@@ -586,10 +630,14 @@ func handle_climbing(delta: float) -> void:
 	# Handle horizontal movement while climbing
 	var horizontal_input = Input.get_axis("ui_left", "ui_right")
 	if abs(horizontal_input) > 0:
-		# Limited horizontal movement - 25% of climb speed
-		velocity.x = horizontal_input * CLIMB_SPEED * 0.25
+		# Pressing left or right makes you fall off the ladder
+		is_climbing = false
+		# Give a small horizontal push in the direction pressed
+		velocity.x = horizontal_input * 50.0  # Small horizontal velocity
+		# Let gravity take over
+		velocity.y = 0
 	else:
-		# Smooth horizontal deceleration
+		# Smooth horizontal deceleration while still on ladder
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
 
 func check_ceiling_clearance() -> void:

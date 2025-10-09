@@ -231,14 +231,14 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="collision_shape"]
-size = Vector2(16, 16)
+size = Vector2(16, 15)
 
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1_script")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("sprite_frames")
-animation = &"climb"
+animation = &"jump_down"
 offset = Vector2(0, -8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

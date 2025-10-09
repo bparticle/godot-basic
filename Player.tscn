@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://c1234player"]
+[gd_scene load_steps=27 format=3 uid="uid://c1234player"]
 
 [ext_resource type="Script" path="res://Player.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://by01x1bcllc3a" path="res://assets/characters/pimpa.png" id="2_texture"]
@@ -30,6 +30,10 @@ region = Rect2(96, 0, 16, 16)
 [sub_resource type="AtlasTexture" id="frame_crouch_1"]
 atlas = ExtResource("2_texture")
 region = Rect2(112, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="frame_dead"]
+atlas = ExtResource("2_texture")
+region = Rect2(48, 16, 16, 16)
 
 [sub_resource type="AtlasTexture" id="frame_duck"]
 atlas = ExtResource("2_texture")
@@ -129,6 +133,14 @@ animations = [{
 "loop": true,
 "name": &"crouch",
 "speed": 4.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("frame_dead")
+}],
+"loop": false,
+"name": &"dead",
+"speed": 1.0
 }, {
 "frames": [{
 "duration": 1.0,

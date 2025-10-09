@@ -34,6 +34,17 @@ func take_damage(amount: int = 1):
 	else:
 		player_died.emit()
 
+func take_damage_no_respawn(amount: int = 1):
+	"""Player takes damage without triggering a respawn (e.g., spikes)."""
+	if current_lives <= 0:
+		return
+	
+	current_lives = max(0, current_lives - amount)
+	health_changed.emit(current_lives, MAX_LIVES)
+	
+	# Don't trigger game over immediately - let the player show dead state first
+	# The Game.gd will handle the game over after the delay
+
 func heal(amount: int = 1):
 	"""Restore lives (for pickups, etc.)"""
 	current_lives = min(MAX_LIVES, current_lives + amount)

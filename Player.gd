@@ -43,6 +43,9 @@ func _ready():
 	# Listen for room changes to briefly lock input and reset motion
 	if room_manager:
 		room_manager.room_changed.connect(_on_room_changed)
+	# Listen for health changes to detect death
+	if health_manager:
+		health_manager.health_changed.connect(_on_health_changed)
 
 # State
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -83,7 +86,27 @@ var jump_hold_timer = 0.0  # Timer to detect if we're holding jump
 var jump_hold_threshold = 0.15  # Time in seconds to distinguish tap vs hold (150ms)
 var jump_just_pressed_this_frame = false  # Whether jump was just pressed this frame
 
+# Damage / hazard handling
+@onready var health_manager = get_node("/root/HealthManager")
+@export var damage_immunity_duration_ms: int = 500
+@export var spike_knockback_speed: float = 100.0
+@export var spike_knockup_velocity: float = -180.0
+var damage_immunity_until_ms: int = 0
+const SPIKE_ATLAS_COORD: Vector2i = Vector2i(1, 1)  # (col=1,row=1) second column/row in 0-based atlas
+
+# Death state
+var is_dead = false
+var has_shown_death_knockback = false
+
 func _physics_process(delta: float) -> void:
+	# Always check for spike damage first, even when dead
+	handle_spike_damage()
+	
+	# If dead, only show dead animation and don't process anything else
+	if is_dead:
+		update_animation()
+		return
+	
 	# Process all inputs first
 	process_inputs()
 	
@@ -181,6 +204,18 @@ func handle_movement(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
 
 func update_animation() -> void:
+	# If dead, show appropriate animation using named clips
+	if is_dead:
+		if not has_shown_death_knockback:
+			# During final knockback, show falling sprite via jump_down animation
+			if animated_sprite.animation != "jump_down":
+				animated_sprite.play("jump_down")
+		else:
+			# After knockback, show dedicated dead sprite
+			if animated_sprite.animation != "dead":
+				animated_sprite.play("dead")
+		return
+	
 	# Handle sprite flipping
 	if velocity.x < 0:
 		animated_sprite.flip_h = true
@@ -382,6 +417,88 @@ func handle_jump_phases() -> void:
 	
 	# Store current velocity for next frame
 	last_velocity_y = velocity.y
+
+func handle_spike_damage() -> void:
+	# Respect damage immunity window (but allow visual effects when dead)
+	if Time.get_ticks_msec() < damage_immunity_until_ms and not is_dead:
+		return
+	
+	# If dead and already showed final knockback, stop checking spikes entirely
+	if is_dead and has_shown_death_knockback:
+		return
+	
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
+	if not tilemap:
+		return
+	
+	# Sample a few points around the player's body to detect spike tiles
+	var sample_points: Array[Vector2] = []
+	var half_width = 3.0
+	var half_height = 6.0
+	# Feet row
+	sample_points.append(global_position + Vector2(0, 0))
+	sample_points.append(global_position + Vector2(-half_width, 0))
+	sample_points.append(global_position + Vector2(half_width, 0))
+	# Mid row
+	sample_points.append(global_position + Vector2(0, -half_height))
+	sample_points.append(global_position + Vector2(-half_width, -half_height))
+	sample_points.append(global_position + Vector2(half_width, -half_height))
+
+	var spike_hit = false
+	for p in sample_points:
+		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
+		if atlas == SPIKE_ATLAS_COORD:
+			spike_hit = true
+			break
+
+	if not spike_hit:
+		return
+
+	print("Spike hit! is_dead: ", is_dead, " has_shown_death_knockback: ", has_shown_death_knockback)
+
+	# If dead, only allow one spike hit to show the final knockback
+	if is_dead:
+		if has_shown_death_knockback:
+			print("Dead player already showed knockback, ignoring")
+			return
+		has_shown_death_knockback = true
+		print("Dead player showing final knockback")
+
+	# Only apply damage if not dead
+	if not is_dead:
+		print("Applying damage...")
+		# Apply damage without respawn
+		if health_manager:
+			if health_manager.has_method("take_damage_no_respawn"):
+				health_manager.take_damage_no_respawn(1)
+			else:
+				health_manager.take_damage(1)
+
+		# Start short immunity and input lock to prevent life-drain in a single cluster
+		damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
+		input_locked_until_ms = max(input_locked_until_ms, Time.get_ticks_msec() + int(damage_immunity_duration_ms * 0.7))
+
+	# Compute knockback: push opposite to current horizontal movement, and knock up
+	var knock_dir = -1 if velocity.x > 0 else 1
+	if abs(velocity.x) < 1.0:
+		# If essentially stationary, use last facing as hint
+		knock_dir = 1 if animated_sprite.flip_h else -1
+	
+	print("Applying knockback: ", knock_dir * spike_knockback_speed, " horizontal, ", spike_knockup_velocity, " vertical")
+	velocity.x = knock_dir * spike_knockback_speed
+	velocity.y = spike_knockup_velocity
+	
+	# Note: Sprite is now handled by update_animation() based on is_dead and has_shown_death_knockback
+
+func _on_health_changed(current_lives: int, _max_lives: int):
+	"""Handle health changes - set dead state when lives reach 0"""
+	print("Health changed: ", current_lives, " lives remaining")
+	if current_lives <= 0 and not is_dead:
+		print("Player died! Setting is_dead = true")
+		is_dead = true
+		# Don't stop movement immediately - let spike damage handle knockback first
+		# velocity = Vector2.ZERO
 
 func handle_climb_animation() -> void:
 	# Handle dynamic climbing animation based on vertical movement only

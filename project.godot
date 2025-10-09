@@ -22,8 +22,8 @@ HealthManager="*res://HealthManager.gd"
 
 [display]
 
-window/size/viewport_width=128
-window/size/viewport_height=128
+window/size/viewport_width=256
+window/size/viewport_height=256
 window/size/mode=3
 window/size/window_width_override=1024
 window/size/window_height_override=960

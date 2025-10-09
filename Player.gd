@@ -449,8 +449,12 @@ func handle_crouch_input() -> void:
 	# Check if down is pressed (alone or with left/right)
 	var down_pressed = Input.is_action_pressed("ui_down")
 	
-	# If we're not forced to crouch, allow normal crouch input
-	if not forced_crouch:
+	# If we're climbing and near a ladder, don't allow crouching to override climbing
+	if is_climbing and should_be_climbing():
+		# While climbing, don't set crouching state
+		pass
+	elif not forced_crouch:
+		# If we're not forced to crouch, allow normal crouch input
 		is_crouching = down_pressed
 	else:
 		# If we're forced to crouch, only allow standing if there's enough ceiling clearance
@@ -460,8 +464,8 @@ func handle_crouch_input() -> void:
 		else:
 			is_crouching = true
 	
-	# If we were climbing, stop climbing when crouching
-	if is_crouching and is_climbing:
+	# If we were climbing, stop climbing when crouching (but not when near a ladder and trying to climb)
+	if is_crouching and is_climbing and not should_be_climbing():
 		is_climbing = false
 
 func check_ladder_interaction() -> void:
@@ -494,7 +498,7 @@ func check_ladder_interaction() -> void:
 			break
 	
 	# Handle ladder interaction
-	if ladder_found and Input.is_action_pressed("ui_up"):
+	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
 		is_climbing = true
 		is_crouching = false  # Can't crouch while climbing
 	elif not ladder_found:

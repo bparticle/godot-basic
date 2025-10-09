@@ -13,20 +13,20 @@ const FRICTION = 400.0
 
 # Collision system - easily tweakable in Godot editor
 @export_group("Collision Shapes")
-@export var collision_idle_size: Vector2 = Vector2(7, 14)
+@export var collision_idle_size: Vector2 = Vector2(4, 14)
 @export var collision_idle_offset: Vector2 = Vector2(0, -7)
 
-@export var collision_walk_size: Vector2 = Vector2(7, 14)
+@export var collision_walk_size: Vector2 = Vector2(4, 14)
 @export var collision_walk_offset: Vector2 = Vector2(0, -7)
 
-@export var collision_jump_size: Vector2 = Vector2(7, 12)
+@export var collision_jump_size: Vector2 = Vector2(4, 12)
 @export var collision_jump_offset: Vector2 = Vector2(0, -6)
 
-@export var collision_crouch_size: Vector2 = Vector2(7, 8)
+@export var collision_crouch_size: Vector2 = Vector2(4, 8)
 @export var collision_crouch_offset: Vector2 = Vector2(0, -4)
 
 
-@export var collision_climb_size: Vector2 = Vector2(7, 14)
+@export var collision_climb_size: Vector2 = Vector2(4, 14)
 @export var collision_climb_offset: Vector2 = Vector2(0, -7)
 
 # References

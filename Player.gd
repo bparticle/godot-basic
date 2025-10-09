@@ -78,6 +78,18 @@ var jump_stuck_timer = 0.0  # Timer for detecting stuck jump phases
 # Simple jump system
 var just_jumped_off_ladder = false  # Flag to prevent crouching after ladder jump
 
+# Ladder centering system
+var ladder_center_x: float = 0.0  # X position of the ladder center
+var ladder_centering_strength: float = 200.0  # How strong the centering force is
+var was_climbing: bool = false  # Track if we were climbing in the previous frame
+
+# Ladder tile coordinates (atlas coordinates)
+const LADDER_TILES = [
+	Vector2i(3, 2),  # Original ladder tile
+	Vector2i(5, 2),  # Platform-ladder tile (one-way collision)
+	Vector2i(5, 3)   # Half ladder sprite
+]
+
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
 @export var damage_immunity_duration_ms: int = 500
@@ -107,6 +119,8 @@ func _physics_process(delta: float) -> void:
 	if is_climbing:
 		handle_climbing(delta)
 	else:
+		# Reset climbing state tracking when not climbing
+		was_climbing = false
 		apply_gravity(delta)
 		handle_movement(delta)
 	
@@ -187,7 +201,8 @@ func should_be_climbing() -> bool:
 			var tile_pos = tilemap.local_to_map(check_pos)
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			
-			if tile_atlas_coords == Vector2i(3, 2):
+			# Check if this is any ladder tile variant
+			if tile_atlas_coords in LADDER_TILES:
 				# Found ladder - can climb
 				return true
 	
@@ -597,8 +612,9 @@ func check_ladder_interaction() -> void:
 	if not tilemap:
 		return
 	
-	# Check for ladder tiles in a 16x16 pixel area around the player
+	# Check for ladder tiles and find the center position
 	var ladder_found = false
+	var ladder_tile_positions: Array[Vector2i] = []
 	var check_radius = 1  # Check 8 pixels in each direction
 	
 	# Create a grid of positions to check around the player
@@ -608,14 +624,30 @@ func check_ladder_interaction() -> void:
 			var tile_pos = tilemap.local_to_map(check_pos)
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			
-			
-			# Check if this is a ladder tile (coordinates 3, 2 in the tileset)
-			if tile_atlas_coords == Vector2i(3, 2):
+			# Check if this is any ladder tile variant
+			if tile_atlas_coords in LADDER_TILES:
 				ladder_found = true
-				break
+				ladder_tile_positions.append(tile_pos)
+	
+	# Calculate ladder center if found
+	if ladder_found and ladder_tile_positions.size() > 0:
+		# Find the center tile position
+		var total_x = 0
+		for tile_pos in ladder_tile_positions:
+			total_x += tile_pos.x
+		var center_tile_x = float(total_x) / float(ladder_tile_positions.size())
 		
-		if ladder_found:
-			break
+		# Convert tile position to world position (center of the tile)
+		var tile_size = tilemap.tile_set.tile_size
+		ladder_center_x = center_tile_x * tile_size.x + (tile_size.x / 2.0)
+		
+		# Debug: Show which ladder tile types were found
+		var ladder_types = []
+		for tile_pos in ladder_tile_positions:
+			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+			ladder_types.append(str(tile_atlas_coords))
+		
+		print("LADDER CENTERING: Found ", ladder_tile_positions.size(), " ladder tiles (", ", ".join(ladder_types), "), center tile X: ", center_tile_x, " world X: ", ladder_center_x)
 	
 	# Handle ladder interaction
 	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
@@ -627,9 +659,17 @@ func check_ladder_interaction() -> void:
 			is_climbing = false
 
 func handle_climbing(delta: float) -> void:
-	"""Handle climbing movement with smooth input processing"""
+	"""Handle climbing movement with smooth input processing and ladder centering"""
 	# Stop gravity while climbing
 	velocity.y = 0
+	
+	# Check if we just started climbing (immediate centering)
+	if is_climbing and not was_climbing:
+		# Just started climbing - immediately center on ladder
+		if ladder_center_x != 0.0:
+			global_position.x = ladder_center_x
+			velocity.x = 0  # Stop any horizontal velocity
+			print("LADDER CENTERING: Immediately centered at X: ", ladder_center_x)
 	
 	# Handle vertical movement on ladder
 	var vertical_input = 0.0
@@ -652,7 +692,29 @@ func handle_climbing(delta: float) -> void:
 		# Let gravity take over
 		velocity.y = 0
 	else:
-		# Smooth horizontal deceleration while still on ladder
+		# Apply gentle ladder centering when no horizontal input (maintains center during climb)
+		apply_ladder_centering(delta)
+	
+	# Update climbing state for next frame
+	was_climbing = is_climbing
+
+func apply_ladder_centering(delta: float) -> void:
+	"""Apply gentle centering force to maintain ladder center during climb"""
+	if ladder_center_x == 0.0:
+		return  # No ladder center calculated yet
+	
+	# Calculate distance from ladder center
+	var distance_from_center = ladder_center_x - global_position.x
+	
+	# Only apply centering if we're not already close to center (within 1 pixel for tighter control)
+	if abs(distance_from_center) > 1.0:
+		# Apply gentler centering force to maintain position during climb
+		var centering_force = distance_from_center * (ladder_centering_strength * 0.5) * delta
+		
+		# Apply the centering force to velocity
+		velocity.x = move_toward(velocity.x, centering_force, (ladder_centering_strength * 0.5) * delta)
+	else:
+		# If we're close to center, just decelerate smoothly
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
 
 func check_ceiling_clearance() -> void:

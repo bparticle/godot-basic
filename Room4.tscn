@@ -1,12 +1,12 @@
-[gd_scene load_steps=9 format=4 uid="uid://bklyp5b2icvn1"]
+[gd_scene load_steps=9 format=4 uid="uid://wxkat7cvqspw"]
 
-[ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://arc_tileset.tres" id="1_g07y1"]
-[ext_resource type="Script" uid="uid://x1liq6b1yt01" path="res://Door.gd" id="2_m7iwu"]
-[ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="3_2uc57"]
-[ext_resource type="Script" uid="uid://c6aq2g2p7mce8" path="res://DeathZone.gd" id="4_bljh5"]
+[ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://arc_tileset.tres" id="1_0wx0o"]
+[ext_resource type="Script" uid="uid://x1liq6b1yt01" path="res://Door.gd" id="2_hql3d"]
+[ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="3_xebmw"]
+[ext_resource type="Script" uid="uid://c6aq2g2p7mce8" path="res://DeathZone.gd" id="4_0x35q"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
-size = Vector2(9, 13)
+size = Vector2(8, 13)
 
 [sub_resource type="RectangleShape2D" id="2_death_shape"]
 size = Vector2(256, 20)
@@ -17,56 +17,56 @@ size = Vector2(20, 128)
 [sub_resource type="RectangleShape2D" id="4_death_shape_right"]
 size = Vector2(20, 128)
 
-[node name="Room3" type="Node2D"]
+[node name="Room4" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
 offset_right = 256.0
 offset_bottom = 128.0
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
-tile_map_data = PackedByteArray("AAAcAAMAAAAAAAIAAAASAAYAAAACAAIAAAATAAYAAAACAAIAAAAUAAYAAAACAAIAAAAVAAYAAAACAAIAAAAWAAYAAAACAAIAAAAXAAYAAAACAAIAAAAYAAYAAAACAAIAAAAZAAYAAAACAAIAAAAaAAYAAAACAAIAAAAbAAYAAAACAAIAAAAcAAYAAAABAAIAABARAAYAAAABAAIAAAAPAAgAAAAAAAIAAAANAAoAAAAAAAIAAAALAAwAAAAAAAIAAAAIAA0AAAAAAAIAAAADAA0AAAACAAIAAAACAA0AAAACAAIAAAABAA0AAAABAAIAAAAEAA0AAAABAAIAABA=")
-tile_set = ExtResource("1_g07y1")
+tile_map_data = PackedByteArray("AAAAAAsAAAABAAIAAAABAAsAAAACAAIAAAACAAsAAAACAAIAAAADAAsAAAACAAIAAAAEAAsAAAACAAIAAAAFAAsAAAABAAIAABAbAAMAAAABAAIAAAAcAAMAAAACAAIAAAAdAAMAAAACAAIAAAAeAAMAAAABAAIAABAZAAQAAAAAAAIAAAAXAAUAAAAAAAIAAAAUAAIAAAABAAIAABAPAAIAAAABAAIAAAAQAAIAAAACAAIAAAARAAIAAAACAAIAAAASAAIAAAACAAIAAAATAAIAAAACAAIAAAAOAAIAAAADAAIAAAAOAAMAAAADAAIAAAAOAAQAAAADAAIAAAAOAAUAAAADAAIAAAAOAAYAAAADAAIAAAAOAAcAAAABAAIAABAOAAEAAAADAAIAAAANAAcAAAACAAIAAAAMAAcAAAACAAIAAAALAAcAAAACAAIAAAAKAAcAAAABAAIAAAAIAAkAAAAAAAIAAAA=")
+tile_set = ExtResource("1_0wx0o")
 
 [node name="PlayerSpawn" type="Marker2D" parent="."]
 position = Vector2(22, 45)
 
 [node name="Door" type="Area2D" parent="."]
 position = Vector2(8, 64)
-script = ExtResource("2_m7iwu")
-target_room = "room_4"
+script = ExtResource("2_hql3d")
+target_room = "room_1"
 
 [node name="Sprite2D" type="Sprite2D" parent="Door"]
-position = Vector2(216, -56)
-texture = ExtResource("3_2uc57")
+position = Vector2(218, -56)
+texture = ExtResource("3_xebmw")
 centered = false
 region_enabled = true
 region_rect = Rect2(16, 0, 8, 16)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Door"]
-position = Vector2(220, -46)
+position = Vector2(222, -47)
 shape = SubResource("1_rect_shape")
 
 [node name="DeathZoneBottom" type="Area2D" parent="."]
 position = Vector2(128, 138)
-script = ExtResource("4_bljh5")
+script = ExtResource("4_0x35q")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneBottom"]
 shape = SubResource("2_death_shape")
 
 [node name="DeathZoneLeft" type="Area2D" parent="."]
 position = Vector2(-10, 64)
-script = ExtResource("4_bljh5")
+script = ExtResource("4_0x35q")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneLeft"]
 shape = SubResource("3_death_shape_left")
 
 [node name="DeathZoneRight" type="Area2D" parent="."]
 position = Vector2(266, 64)
-script = ExtResource("4_bljh5")
+script = ExtResource("4_0x35q")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneRight"]
 shape = SubResource("4_death_shape_right")
 
 [node name="DeathZoneTop" type="Area2D" parent="."]
 position = Vector2(128, -10)
-script = ExtResource("4_bljh5")
+script = ExtResource("4_0x35q")

@@ -39,6 +39,7 @@ func setup_rooms():
 	rooms["room_1"] = RoomData.new("room_1", "res://Room1.tscn", 128.0, 128.0)
 	rooms["room_2"] = RoomData.new("room_2", "res://Room2.tscn", 256.0, 128.0)
 	rooms["room_3"] = RoomData.new("room_3", "res://Room3.tscn", 256.0, 128.0)
+	rooms["room_4"] = RoomData.new("room_4", "res://Room4.tscn", 256.0, 128.0)
 
 func set_game_container(container: Node2D):
 	game_container = container

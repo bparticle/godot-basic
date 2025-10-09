@@ -38,6 +38,19 @@ var climb_direction = 0  # -1 for left, 1 for right
 var forced_crouch = false  # When we're forced to crouch due to low ceiling
 var climb_animation_timer = 0.0  # Timer for climb animation
 
+# Blinking state
+var idle_timer = 0.0  # Timer for how long we've been idle
+var blink_timer = 0.0  # Timer for blink animation
+var is_blinking = false  # Whether we're currently in a blink animation
+var last_blink_time = 0.0  # When we last blinked
+var blink_interval_min = 2.0  # Minimum time between blinks
+var blink_interval_max = 5.0  # Maximum time between blinks
+var blink_duration = 0.33  # How long the blink animation lasts (faster now)
+var idle_animation_timer = 0.0  # Timer to sync with idle animation cycle
+var use_mirrored_idle = false  # Whether to use mirrored idle after blinking
+var mirrored_idle_timer = 0.0  # Timer for how long we've been in mirrored idle
+var mirrored_idle_duration = 3.0  # How long to stay in mirrored idle
+
 func _physics_process(delta: float) -> void:
 	# Process all inputs first
 	process_inputs()
@@ -146,9 +159,14 @@ func update_animation() -> void:
 		animated_sprite.flip_h = false
 		climb_direction = 1
 	
+	# Handle blinking logic
+	handle_blinking()
+	
 	# Handle animation states
 	var new_animation = ""
-	if is_climbing:
+	if is_blinking:
+		new_animation = "blink"
+	elif is_climbing:
 		new_animation = "climb"
 		# For climbing, we need to handle the alternating frames manually
 		handle_climb_animation()
@@ -169,6 +187,64 @@ func update_animation() -> void:
 	if new_animation != current_animation:
 		current_animation = new_animation
 		animated_sprite.play(current_animation)
+	
+	# Handle mirrored idle after blinking
+	if current_animation == "idle" and use_mirrored_idle:
+		# Flip the sprite horizontally for mirrored idle
+		animated_sprite.flip_h = true
+	elif current_animation == "idle" and not use_mirrored_idle:
+		# Reset to normal direction when not mirrored
+		animated_sprite.flip_h = false
+
+func handle_blinking() -> void:
+	# Only blink when idle and not moving
+	var is_idle = is_on_floor() and abs(velocity.x) <= 5 and not is_crouching and not is_climbing
+	
+	if is_idle:
+		idle_timer += get_physics_process_delta_time()
+		idle_animation_timer += get_physics_process_delta_time()
+		
+		# Handle mirrored idle timer
+		if use_mirrored_idle:
+			mirrored_idle_timer += get_physics_process_delta_time()
+			if mirrored_idle_timer >= mirrored_idle_duration:
+				use_mirrored_idle = false
+				mirrored_idle_timer = 0.0
+		
+		# Check if we should start blinking
+		if not is_blinking and idle_timer > 1.0:  # Wait at least 1 second before blinking
+			var time_since_last_blink = idle_timer - last_blink_time
+			var should_blink = time_since_last_blink > randf_range(blink_interval_min, blink_interval_max)
+			
+			if should_blink:
+				# Sync the blink with the idle animation cycle
+				# The idle animation has a 0.5 second cycle (2 frames at 4.0 speed = 0.5s total)
+				var idle_cycle_duration = 0.5  # Matches idle animation speed
+				var cycle_progress = fmod(idle_animation_timer, idle_cycle_duration)
+				
+				# Start blinking at the beginning of the next idle cycle
+				var time_to_next_cycle = idle_cycle_duration - cycle_progress
+				if time_to_next_cycle < 0.1:  # If we're very close to cycle start, start immediately
+					is_blinking = true
+					blink_timer = 0.0
+					last_blink_time = idle_timer
+					idle_animation_timer = 0.0  # Reset to sync with blink
+	else:
+		# Reset timers when not idle
+		idle_timer = 0.0
+		is_blinking = false
+		blink_timer = 0.0
+		idle_animation_timer = 0.0
+		use_mirrored_idle = false  # Reset mirrored idle when moving
+		mirrored_idle_timer = 0.0
+	
+	# Handle blink animation duration
+	if is_blinking:
+		blink_timer += get_physics_process_delta_time()
+		if blink_timer >= blink_duration:
+			is_blinking = false
+			blink_timer = 0.0
+			use_mirrored_idle = true  # Switch to mirrored idle after blinking
 
 func handle_climb_animation() -> void:
 	# Handle dynamic climbing animation based on vertical movement only
@@ -199,7 +275,7 @@ func update_collision_shape() -> void:
 	
 	# Adjust collision size based on current animation
 	match current_animation:
-		"idle":
+		"idle", "blink":
 			shape.size = COLLISION_IDLE
 		"walk":
 			shape.size = COLLISION_WALK
@@ -273,15 +349,10 @@ func check_ladder_interaction() -> void:
 			var tile_pos = tilemap.local_to_map(check_pos)
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			
-			# Debug output when up is pressed
-			if Input.is_action_pressed("ui_up") and tile_atlas_coords != Vector2i(-1, -1):
-				print("Checking position: ", check_pos, " -> Tile: ", tile_pos, " -> Atlas: ", tile_atlas_coords)
 			
 			# Check if this is a ladder tile (coordinates 3, 2 in the tileset)
 			if tile_atlas_coords == Vector2i(3, 2):
 				ladder_found = true
-				if Input.is_action_pressed("ui_up"):
-					print("LADDER FOUND at position: ", check_pos, "! Starting to climb.")
 				break
 		
 		if ladder_found:

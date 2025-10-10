@@ -22,11 +22,11 @@ HealthManager="*res://HealthManager.gd"
 
 [display]
 
-window/size/viewport_width=500
-window/size/viewport_height=500
+window/size/viewport_width=350
+window/size/viewport_height=350
 window/size/mode=3
-window/size/window_width_override=500
-window/size/window_height_override=500
+window/size/window_width_override=350
+window/size/window_height_override=350
 window/stretch/mode="canvas_items"
 window/stretch/scale=2.0
 

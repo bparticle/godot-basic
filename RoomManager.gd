@@ -139,8 +139,69 @@ func get_camera_position(player_pos: Vector2, viewport_size: Vector2) -> Vector2
 	var half_viewport_x = viewport_size.x / 2.0
 	var half_viewport_y = viewport_size.y / 2.0
 	
+	# Get actual room bounds from tilemap for more accurate clamping
+	var room_bounds = get_room_bounds()
+	
+	# Use actual room bounds if available, otherwise fall back to room data
+	var min_x = half_viewport_x
+	var max_x = current_room.width - half_viewport_x
+	var min_y = half_viewport_y
+	var max_y = current_room.height - half_viewport_y
+	
+	if room_bounds != Vector4.ZERO:
+		# Use actual room bounds with minimal padding
+		var padding = 16.0  # Small padding to ensure content isn't clipped
+		min_x = room_bounds.x + half_viewport_x + padding
+		max_x = room_bounds.z - half_viewport_x - padding
+		min_y = room_bounds.y + half_viewport_y + padding
+		max_y = room_bounds.w - half_viewport_y - padding
+		
+		# Ensure bounds are valid (min < max)
+		if min_x >= max_x:
+			min_x = half_viewport_x
+			max_x = current_room.width - half_viewport_x
+		if min_y >= max_y:
+			min_y = half_viewport_y
+			max_y = current_room.height - half_viewport_y
+	
 	# Clamp camera position to stay within room bounds
-	var camera_x = clamp(player_pos.x, half_viewport_x, current_room.width - half_viewport_x)
-	var camera_y = clamp(player_pos.y, half_viewport_y, current_room.height - half_viewport_y)
+	var camera_x = clamp(player_pos.x, min_x, max_x)
+	var camera_y = clamp(player_pos.y, min_y, max_y)
+	
+	# Debug output removed for clean console
 	
 	return Vector2(camera_x, camera_y)
+
+# Get the actual bounds of the current room by analyzing the tilemap
+func get_room_bounds() -> Vector4:
+	if not current_room_instance:
+		return Vector4.ZERO
+	
+	var tilemap = current_room_instance.get_node_or_null("TileMapLayer")
+	if not tilemap:
+		return Vector4.ZERO
+	
+	# Get the used rect from the tilemap
+	var used_rect = tilemap.get_used_rect()
+	if used_rect.size == Vector2i.ZERO:
+		return Vector4.ZERO
+	
+	# Convert tile coordinates to world coordinates
+	var tile_size = tilemap.tile_set.tile_size
+	var world_pos = tilemap.map_to_local(used_rect.position)
+	var world_size = Vector2(used_rect.size) * Vector2(tile_size)
+	
+	# Add some padding to the bounds to ensure we don't clip content
+	var padding = 32.0
+	
+	# Return bounds as Vector4: x_min, y_min, x_max, y_max
+	var bounds = Vector4(
+		world_pos.x - padding,
+		world_pos.y - padding,
+		world_pos.x + world_size.x + padding,
+		world_pos.y + world_size.y + padding
+	)
+	
+	# Debug output removed for clean console
+	
+	return bounds

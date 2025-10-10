@@ -11,6 +11,15 @@ const FRICTION = 400.0
 # Jump system - simple UP key jumping
 @export var jump_power: float = 1.0 # Jump power multiplier
 
+# Platformer improvements
+@export_group("Platformer Improvements")
+@export var jump_buffer_time: float = 0.1 # How long to buffer jump input
+@export var coyote_time: float = 0.1 # How long to allow jumping after leaving ground
+@export var fall_gravity_scale: float = 2.0 # Higher gravity when falling
+@export var low_jump_gravity_scale: float = 1.8 # Gravity when releasing jump early
+@export var ledge_push_amount: float = 6.0 # How far to push when hitting ceiling
+@export var ledge_probe_offset: float = 6.0 # Distance to probe for ledge push
+
 # Collision system - easily tweakable in Godot editor
 @export_group("Collision Shapes")
 @export var collision_idle_size: Vector2 = Vector2(4, 14)
@@ -78,6 +87,11 @@ var jump_stuck_timer = 0.0 # Timer for detecting stuck jump phases
 # Simple jump system
 var just_jumped_off_ladder = false # Flag to prevent crouching after ladder jump
 
+# Platformer improvement timers
+var jump_buffer_timer: float = 0.0 # Timer for jump buffering
+var coyote_timer: float = 0.0 # Timer for coyote time
+var was_on_floor: bool = false # Track previous frame floor state
+
 # Ladder centering system
 var ladder_center_x: float = 0.0 # X position of the ladder center
 var ladder_centering_strength: float = 200.0 # How strong the centering force is
@@ -123,6 +137,9 @@ func _physics_process(delta: float) -> void:
 	# Handle platform-ladder pass-through
 	handle_platform_ladder_pass_through(delta)
 	
+	# Update platformer improvement timers
+	update_platformer_timers(delta)
+	
 	# Handle state-specific logic
 	if is_climbing:
 		handle_climbing(delta)
@@ -133,6 +150,9 @@ func _physics_process(delta: float) -> void:
 		if not platform_ladder_pass_through:
 			apply_gravity(delta)
 		handle_movement(delta)
+	
+	# Try to consume buffered jump after movement
+	try_consume_buffered_jump()
 	
 	update_animation()
 	update_collision_shape() # Update collision based on animation
@@ -156,39 +176,40 @@ func process_inputs() -> void:
 	# Check ceiling clearance
 	check_ceiling_clearance()
 	
-	# Handle jump input with priority
+	# Handle jump input with priority (now includes buffering)
 	handle_jump_input()
 	
 	# Handle state transitions
 	handle_state_transitions()
 
 func handle_jump_input() -> void:
-	"""Handle jump input - UP key while moving"""
-	# Check for UP key press
-	if not Input.is_action_just_pressed("ui_up"):
-		return
+	"""Handle jump input - UP key while moving with buffering"""
+	# Check for UP key press and buffer it
+	if Input.is_action_just_pressed("ui_up"):
+		jump_buffer_timer = jump_buffer_time
+		print("Jump input buffered! Timer: ", jump_buffer_timer)
 	
-	# Can only jump when on floor and not crouching/climbing
-	if is_on_floor() and not is_crouching and not is_climbing:
-		# Simple jump
-		jump_phase = "up"
-		velocity.y = JUMP_VELOCITY * jump_power
-		print("Jumping! velocity.y: ", velocity.y)
-	
-	# Special case: jumping while climbing
-	elif is_climbing:
-		# Break out of climbing and jump
-		is_climbing = false
-		
-		# Reset crouching state when jumping off ladder
-		is_crouching = false
-		forced_crouch = false
-		just_jumped_off_ladder = true
-		
-		# Simple jump off ladder
-		jump_phase = "up"
-		velocity.y = JUMP_VELOCITY * jump_power
-		print("Jumping off ladder! velocity.y: ", velocity.y)
+	# Try immediate jump if conditions are met
+	if jump_buffer_timer > 0.0:
+		# Can jump when on floor and not crouching/climbing
+		if is_on_floor() and not is_crouching and not is_climbing:
+			do_jump()
+			jump_buffer_timer = 0.0
+			print("Immediate jump! velocity.y: ", velocity.y)
+		# Special case: jumping while climbing
+		elif is_climbing:
+			# Break out of climbing and jump
+			is_climbing = false
+			
+			# Reset crouching state when jumping off ladder
+			is_crouching = false
+			forced_crouch = false
+			just_jumped_off_ladder = true
+			
+			# Jump off ladder
+			do_jump()
+			jump_buffer_timer = 0.0
+			print("Jumping off ladder! velocity.y: ", velocity.y)
 
 func handle_state_transitions() -> void:
 	"""Handle transitions between different movement states"""
@@ -223,7 +244,16 @@ func should_be_climbing() -> bool:
 
 func apply_gravity(delta: float) -> void:
 	if not is_on_floor():
-		velocity.y += gravity * delta
+		var gravity_scale = 1.0
+		
+		# Higher gravity when falling
+		if velocity.y > 0.0:
+			gravity_scale = fall_gravity_scale
+		# Variable jump height - cut jump if releasing early
+		elif not Input.is_action_pressed("ui_up") and velocity.y < 0.0:
+			gravity_scale = low_jump_gravity_scale
+		
+		velocity.y += gravity * gravity_scale * delta
 
 
 func handle_movement(delta: float) -> void:
@@ -416,7 +446,9 @@ func check_jump_interruption() -> void:
 	
 	# Check for ceiling collision during jump (velocity suddenly stops or reverses)
 	if jump_phase in ["up", "peak"] and velocity.y >= 0 and last_velocity_y < -50:
-		# Player hit ceiling during jump, transition to down phase
+		# Player hit ceiling during jump, try ledge push-around
+		handle_ledge_push_around()
+		# Transition to down phase
 		print("JUMP INTERRUPTION: Ceiling collision detected, transitioning to down phase")
 		jump_phase = "down"
 		return
@@ -841,3 +873,59 @@ func check_ceiling_clearance_for_full_height() -> bool:
 	
 	# If no collision found, there's enough clearance
 	return result.is_empty()
+
+# Platformer improvement functions
+func update_platformer_timers(delta: float) -> void:
+	"""Update jump buffering and coyote time timers"""
+	# Update jump buffer timer
+	if jump_buffer_timer > 0.0:
+		jump_buffer_timer -= delta
+	
+	# Update coyote timer
+	if is_on_floor():
+		coyote_timer = coyote_time
+	else:
+		coyote_timer = max(0.0, coyote_timer - delta)
+	
+	# Track floor state for next frame
+	was_on_floor = is_on_floor()
+
+func try_consume_buffered_jump() -> void:
+	"""Try to consume a buffered jump input after movement"""
+	if jump_buffer_timer <= 0.0:
+		return
+	
+	# Can jump if on floor or in coyote time, and not crouching/climbing
+	if (is_on_floor() or coyote_timer > 0.0) and not is_crouching and not is_climbing:
+		do_jump()
+		jump_buffer_timer = 0.0
+		coyote_timer = 0.0
+		print("Buffered jump consumed! velocity.y: ", velocity.y)
+
+func do_jump(jump_strength: float = JUMP_VELOCITY * jump_power) -> void:
+	"""Centralized jump function for consistent behavior"""
+	jump_phase = "up"
+	velocity.y = jump_strength
+	# Clear any conflicting timers
+	jump_buffer_timer = 0.0
+	coyote_timer = 0.0
+
+func handle_ledge_push_around() -> void:
+	"""Try to push player around ledge when hitting ceiling"""
+	var space_state = get_world_2d().direct_space_state
+	
+	# Check if there's space to the left and right
+	var left_probe_pos = global_position + Vector2(-ledge_probe_offset, -collision_jump_size.y)
+	var right_probe_pos = global_position + Vector2(ledge_probe_offset, -collision_jump_size.y)
+	
+	# Use the correct Godot 4 API for intersect_point
+	var left_free = space_state.intersect_point(left_probe_pos).is_empty()
+	var right_free = space_state.intersect_point(right_probe_pos).is_empty()
+	
+	# Push in the direction that has space
+	if right_free and not left_free:
+		global_position.x += ledge_push_amount
+		print("LEDGE PUSH: Pushed right by ", ledge_push_amount)
+	elif left_free and not right_free:
+		global_position.x -= ledge_push_amount
+		print("LEDGE PUSH: Pushed left by ", ledge_push_amount)

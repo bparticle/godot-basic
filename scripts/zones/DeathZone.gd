@@ -25,4 +25,3 @@ func _on_body_entered(body):
 		# Player takes damage
 		if health_manager:
 			health_manager.take_damage(1)
-

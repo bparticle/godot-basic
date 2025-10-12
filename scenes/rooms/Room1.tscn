@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=4 uid="uid://c881bufqvgtmd"]
+[gd_scene load_steps=12 format=4 uid="uid://c881bufqvgtmd"]
 
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_tileset"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="2_flag_tex"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/zones/DeathZone.gd" id="4_death_script"]
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="5_gem_large"]
 [ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://scenes/collectibles/GemSmall.tscn" id="6_gem_small"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/Key.tscn" id="7_key"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
@@ -89,3 +90,6 @@ position = Vector2(390, 473)
 
 [node name="GemSmall4" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(372, 259)
+
+[node name="Key1" parent="." instance=ExtResource("7_key")]
+position = Vector2(193, 107)

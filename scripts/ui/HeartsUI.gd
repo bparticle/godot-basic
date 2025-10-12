@@ -45,4 +45,3 @@ func _on_health_changed(current_lives: int, max_lives: int):
 		
 		heart_rect.texture = atlas
 		heart_container.add_child(heart_rect)
-

@@ -72,10 +72,6 @@ script = ExtResource("4_death_script")
 position = Vector2(372, 174)
 shape = SubResource("4_death_shape_right")
 
-[node name="DeathZoneTop" type="Area2D" parent="."]
-position = Vector2(64, -10)
-script = ExtResource("4_death_script")
-
 [node name="GemLarge1" parent="." instance=ExtResource("5_gem_large")]
 position = Vector2(257, 391)
 
@@ -90,3 +86,6 @@ position = Vector2(273, 391)
 
 [node name="GemSmall3" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(390, 473)
+
+[node name="GemSmall4" parent="." instance=ExtResource("6_gem_small")]
+position = Vector2(372, 259)

@@ -53,7 +53,11 @@ scripts/
 ├── rooms/           # Room-specific scripts (if any)
 ├── doors/           # Door-related scripts
 │   └── Door.gd
-├── zones/           # Zone/area scripts
+├── collectibles/   # Collectible item scripts
+│   ├── Collectible.gd
+│   ├── GemLarge.gd
+│   └── GemSmall.gd
+├── zones/          # Zone/area scripts
 │   └── DeathZone.gd
 ├── Game.gd          # Main game script
 ├── GameOver.gd      # Game over script
@@ -79,6 +83,9 @@ scenes/
 │   └── GameOver.tscn
 ├── doors/           # Door scenes
 │   └── DoorStateMachine.tscn
+├── collectibles/    # Collectible item scenes
+│   ├── GemLarge.tscn
+│   └── GemSmall.tscn
 ├── zones/           # Zone scenes (if any)
 └── Game.tscn        # Main game scene
 ```
@@ -176,6 +183,7 @@ resources/
 - `scenes/rooms/` - Room scenes
 - `scenes/ui/` - UI scenes
 - `scenes/doors/` - Door scenes
+- `scenes/collectibles/` - Collectible item scenes
 - `scenes/zones/` - Zone scenes
 - `scenes/` - Main game scene
 

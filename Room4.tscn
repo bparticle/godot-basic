@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=4 uid="uid://y2khfixkyw5v"]
+[gd_scene load_steps=9 format=4 uid="uid://b61fhjdxdwcjc"]
 
 [ext_resource type="TileSet" uid="uid://pm14vtpiwfrk" path="res://arc_tileset.tres" id="1_0wx0o"]
 [ext_resource type="Script" path="res://Door.gd" id="2_hql3d"]

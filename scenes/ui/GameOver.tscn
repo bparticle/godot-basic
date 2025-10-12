@@ -1,6 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://cco57vv0ye3rr"]
+[gd_scene load_steps=6 format=3 uid="uid://bu1v08yjf0suw"]
 
-[ext_resource type="Script" path="res://scripts/GameOver.gd" id="1_gameover_script"]
+[ext_resource type="Script" path="res://GameOver.gd" id="1_gameover_script"]
 
 [sub_resource type="SystemFont" id="system_font"]
 antialiasing = 0

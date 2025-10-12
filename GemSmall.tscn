@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://cgh6nlq6jv47o"]
+[gd_scene load_steps=6 format=3 uid="uid://bwg0oq4wsqkfn"]
 
 [ext_resource type="Script" path="res://GemSmall.gd" id="1_script"]
 [ext_resource type="Script" path="res://CollectibleStateMachine.gd" id="2_script"]

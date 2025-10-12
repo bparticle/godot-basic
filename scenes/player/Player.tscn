@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://c1234player"]
+[gd_scene load_steps=27 format=3 uid="uid://ca36nytglthln"]
 
 [ext_resource type="Script" path="res://scripts/player/Player.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://by01x1bcllc3a" path="res://assets/characters/pimpa.png" id="2_texture"]

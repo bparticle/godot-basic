@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=4 uid="uid://b5g77ay3xfsfp"]
+[gd_scene load_steps=9 format=4 uid="uid://c4r1sbpuq5i2k"]
 
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="1_flag_tex"]
 [ext_resource type="TileSet" uid="uid://pm14vtpiwfrk" path="res://arc_tileset.tres" id="1_s7314"]

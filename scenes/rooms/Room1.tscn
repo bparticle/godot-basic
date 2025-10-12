@@ -78,9 +78,6 @@ shape = SubResource("4_death_shape_right")
 [node name="GemLarge1" parent="." instance=ExtResource("5_gem_large")]
 position = Vector2(257, 391)
 
-[node name="GemLarge2" parent="." instance=ExtResource("5_gem_large")]
-position = Vector2(232, 249)
-
 [node name="GemSmall1" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(228, 177)
 value = null

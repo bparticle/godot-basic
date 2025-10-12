@@ -1,0 +1,81 @@
+# Cursor Configuration for Pimpa-Raka Game Project
+
+# This file configures Cursor to automatically reference the project framework documentation
+# for all development tasks to ensure consistency with established patterns and conventions.
+
+# Framework Documentation Reference
+# CRITICAL: Always reference PROJECT_FRAMEWORK_DOCUMENTATION.md before making any changes
+# This document contains the complete framework architecture, patterns, and conventions.
+
+# Project Context
+# This is a 2D platformer game built in Godot 4.3 with:
+# - State machine architecture for entity behaviors
+# - Room-based level system with dynamic loading
+# - Player movement system with advanced platformer mechanics
+# - Health/life system with respawn mechanics
+# - Smart camera system with room boundaries
+# - Collectible system with modular items
+# - Color palette system for pixel art
+
+# Key Systems to Always Consider:
+# - RoomManager: Handles room loading, transitions, and player spawning
+# - HealthManager: Manages lives, damage, death, and respawn
+# - GameStateManager: Game-wide state management (playing, paused, game over)
+# - State Machine System: Clean entity behaviors with State/StateMachine pattern
+# - SmartCamera: Room-aware camera that follows player within boundaries
+# - GameColors: Centralized color palette with 15 colors from retro-saffron palette
+
+# Development Guidelines:
+# 1. Always read PROJECT_FRAMEWORK_DOCUMENTATION.md before making changes
+# 2. Follow established naming conventions and file organization
+# 3. Use existing patterns for new features (states, rooms, collectibles)
+# 4. Maintain consistency with the state machine architecture
+# 5. Integrate properly with the room management system
+# 6. Use the color palette system for all visual elements
+
+# When creating new rooms:
+# - Copy Room0.tscn as template
+# - Add required nodes (PlayerSpawn, TileMapLayer, Doors)
+# - Register in RoomManager.setup_rooms()
+# - Set up room transitions in door nodes
+
+# When creating new states:
+# - Extend State class
+# - Implement enter(), exit(), update(), physics_update()
+# - Add to StateMachine as child node
+# - Set up transitions in check_transitions()
+
+# When creating new collectibles:
+# - Extend Collectible class
+# - Override collect() method for custom behavior
+# - Set up scene with Area2D and collision shape
+
+# Color Palette Usage:
+# - Access colors via GameColors.COLOR_NAME
+# - Use GameColors.get_color_by_name() for dynamic access
+# - Get categories via GameColors.get_*_colors()
+
+# File Organization:
+# - Scripts organized by system/functionality
+# - Scenes organized by entity type
+# - Resources centralized in resources/ folder
+
+# Naming Conventions:
+# - States: EntityState (e.g., PlayerIdleState)
+# - Managers: EntityManager (e.g., RoomManager)
+# - Components: EntityComponent (e.g., MovementComponent)
+# - Rooms: RoomX.tscn where X is room number
+# - Scenes: PascalCase (e.g., Player.tscn)
+
+# Signal Usage:
+# - State transitions: transition_requested signal
+# - Health changes: health_changed signal
+# - Room changes: room_changed signal
+# - Game state: game_state_changed signal
+
+# Singleton Access:
+# - RoomManager: get_node("/root/RoomManager")
+# - HealthManager: get_node("/root/HealthManager")
+# - GameStateManager: get_node("/root/GameStateManager")
+
+# CRITICAL: Always reference PROJECT_FRAMEWORK_DOCUMENTATION.md for complete details

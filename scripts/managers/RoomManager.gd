@@ -36,6 +36,7 @@ func _ready():
 
 func setup_rooms():
 	# Define all rooms with their scene paths
+	rooms["room_0"] = RoomData.new("room_0", "res://scenes/rooms/Room0.tscn", 600.0, 600.0)
 	rooms["room_1"] = RoomData.new("room_1", "res://scenes/rooms/Room1.tscn", 600.0, 600.0)
 	rooms["room_2"] = RoomData.new("room_2", "res://scenes/rooms/Room2.tscn", 600.0, 600.0)
 	rooms["room_3"] = RoomData.new("room_3", "res://scenes/rooms/Room3.tscn", 600.0, 600.0)
@@ -44,7 +45,7 @@ func setup_rooms():
 func set_game_container(container: Node2D):
 	game_container = container
 
-func load_initial_room(room_id: String = "room_1"):
+func load_initial_room(room_id: String = "room_0"):
 	change_room(room_id)
 
 func cleanup():

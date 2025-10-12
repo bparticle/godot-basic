@@ -46,7 +46,6 @@ func perform_attack():
 		var health_manager = get_node("/root/HealthManager")
 		if health_manager:
 			health_manager.take_damage(parent.attack_damage)
-		print("Enemy attacked player for ", parent.attack_damage, " damage!")
 
 func check_transitions():
 	# Check if attack duration is over

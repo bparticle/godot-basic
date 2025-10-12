@@ -21,9 +21,6 @@ func _ready():
 func _on_body_entered(body):
 	# Check if the body is the player and door is active
 	if body.is_in_group("player") and is_active:
-		print("Door triggered! target_room property = ", target_room)
-		print("Door node name: ", name)
-		print("Door position: ", global_position)
 		# Deactivate door to prevent double-triggering
 		is_active = false
 		# Use call_deferred to avoid physics callback issues

@@ -198,7 +198,6 @@ func handle_jump_input() -> void:
 	# Check for UP key press and buffer it
 	if Input.is_action_just_pressed("ui_up"):
 		jump_buffer_timer = jump_buffer_time
-		print("Jump input buffered! Timer: ", jump_buffer_timer)
 	
 	# Try immediate jump if conditions are met
 	if jump_buffer_timer > 0.0:
@@ -206,7 +205,6 @@ func handle_jump_input() -> void:
 		if is_on_floor() and not is_crouching and not is_climbing:
 			do_jump()
 			jump_buffer_timer = 0.0
-			print("Immediate jump! velocity.y: ", velocity.y)
 		# Special case: jumping while climbing
 		elif is_climbing:
 			# Break out of climbing and jump
@@ -220,7 +218,6 @@ func handle_jump_input() -> void:
 			# Jump off ladder
 			do_jump()
 			jump_buffer_timer = 0.0
-			print("Jumping off ladder! velocity.y: ", velocity.y)
 
 func handle_state_transitions() -> void:
 	"""Handle transitions between different movement states"""
@@ -340,9 +337,6 @@ func update_animation() -> void:
 	if new_animation != current_animation:
 		current_animation = new_animation
 		animated_sprite.play(current_animation)
-		# Debug output for animation changes
-		if new_animation in ["crouch", "duck"]:
-			print("PROBLEM: Showing crouch animation! is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
 	
 	# Handle mirrored idle after blinking
 	if current_animation == "idle" and use_mirrored_idle:
@@ -439,19 +433,16 @@ func check_jump_interruption() -> void:
 	"""Check for conditions that should interrupt/reset the jump phase"""
 	# Reset jump phase if we're climbing (ladder takes priority)
 	if is_climbing and jump_phase != "none":
-		print("JUMP INTERRUPTION: Climbing detected, resetting jump phase")
 		jump_phase = "none"
 		return
 	
 	# Reset jump phase if we're forced to crouch due to ceiling
 	if forced_crouch and jump_phase != "none":
-		print("JUMP INTERRUPTION: Forced crouch detected, resetting jump phase")
 		jump_phase = "none"
 		return
 	
 	# Reset jump phase if we're manually crouching and on floor
 	if is_crouching and is_on_floor() and jump_phase != "none":
-		print("JUMP INTERRUPTION: Manual crouch on floor detected, resetting jump phase")
 		jump_phase = "none"
 		return
 	
@@ -460,7 +451,6 @@ func check_jump_interruption() -> void:
 		# Player hit ceiling during jump, try ledge push-around
 		handle_ledge_push_around()
 		# Transition to down phase
-		print("JUMP INTERRUPTION: Ceiling collision detected, transitioning to down phase")
 		jump_phase = "down"
 		return
 	
@@ -472,7 +462,6 @@ func check_jump_interruption() -> void:
 			# Add a small timer to prevent premature reset
 			jump_stuck_timer += get_physics_process_delta_time()
 			if jump_stuck_timer > 0.5: # 0.5 seconds max
-				print("JUMP INTERRUPTION: Stuck jump detected, transitioning to down phase")
 				jump_phase = "down" # Transition to down phase
 				jump_stuck_timer = 0.0
 		else:
@@ -519,19 +508,14 @@ func handle_spike_damage() -> void:
 	if not spike_hit:
 		return
 
-	print("Spike hit! is_dead: ", is_dead, " has_shown_death_knockback: ", has_shown_death_knockback)
-
 	# If dead, only allow one spike hit to show the final knockback
 	if is_dead:
 		if has_shown_death_knockback:
-			print("Dead player already showed knockback, ignoring")
 			return
 		has_shown_death_knockback = true
-		print("Dead player showing final knockback")
 
 	# Only apply damage if not dead
 	if not is_dead:
-		print("Applying damage...")
 		# Apply damage without respawn
 		if health_manager:
 			if health_manager.has_method("take_damage_no_respawn"):
@@ -549,7 +533,6 @@ func handle_spike_damage() -> void:
 		# If essentially stationary, use last facing as hint
 		knock_dir = 1 if animated_sprite.flip_h else -1
 	
-	print("Applying knockback: ", knock_dir * spike_knockback_speed, " horizontal, ", spike_knockup_velocity, " vertical")
 	velocity.x = knock_dir * spike_knockback_speed
 	velocity.y = spike_knockup_velocity
 	
@@ -557,9 +540,7 @@ func handle_spike_damage() -> void:
 
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - set dead state when lives reach 0"""
-	print("Health changed: ", current_lives, " lives remaining")
 	if current_lives <= 0 and not is_dead:
-		print("Player died! Setting is_dead = true")
 		is_dead = true
 		# Don't stop movement immediately - let spike damage handle knockback first
 		# velocity = Vector2.ZERO
@@ -647,12 +628,10 @@ func handle_crouch_input() -> void:
 	
 	# Don't allow crouching immediately after jumping off ladder
 	if just_jumped_off_ladder:
-		print("CROUCH INPUT: just_jumped_off_ladder is true, preventing crouching")
 		# Reset the flag after a short delay
 		just_jumped_off_ladder = false
 		is_crouching = false
 		forced_crouch = false
-		print("CROUCH INPUT: Reset complete - is_crouching: ", is_crouching, " forced_crouch: ", forced_crouch)
 		return
 	
 	# Check if down is pressed (alone or with left/right)
@@ -667,14 +646,11 @@ func handle_crouch_input() -> void:
 		is_crouching = down_pressed
 	else:
 		# If we're forced to crouch, only allow standing if there's enough ceiling clearance
-		print("CROUCH INPUT: Forced crouch logic - down_pressed: ", down_pressed)
 		if not down_pressed and check_ceiling_clearance_for_full_height():
 			is_crouching = false
 			forced_crouch = false
-			print("CROUCH INPUT: Forced crouch cleared - is_crouching: ", is_crouching)
 		else:
 			is_crouching = true
-			print("CROUCH INPUT: Forced crouch maintained - is_crouching: ", is_crouching)
 	
 	# If we were climbing, stop climbing when crouching (but not when near a ladder and trying to climb)
 	if is_crouching and is_climbing and not should_be_climbing():
@@ -695,13 +671,10 @@ func handle_platform_ladder_pass_through(delta: float) -> void:
 		
 		# Smooth direct position adjustment based on delta time
 		global_position.y += 4.0 # Direct position adjustment
-		
-		print("PLATFORM LADDER: Passing through, timer: ", platform_ladder_pass_timer, " pos: ", global_position.y)
 	else:
 		# Pass-through duration expired, reset
 		platform_ladder_pass_through = false
 		platform_ladder_pass_timer = 0.0
-		print("PLATFORM LADDER: Pass-through complete")
 
 func check_platform_ladder_pass_through() -> void:
 	"""Check if player is standing on platform-ladder and wants to pass through"""
@@ -729,13 +702,11 @@ func check_platform_ladder_pass_through() -> void:
 		if not platform_ladder_pass_through:
 			platform_ladder_pass_through = true
 			platform_ladder_pass_timer = 0.0
-			print("PLATFORM LADDER: Starting pass-through - standing on platform-ladder tile at ", tile_pos)
 	else:
 		# Reset pass-through if not on platform-ladder or not pressing down
 		if platform_ladder_pass_through:
 			platform_ladder_pass_through = false
 			platform_ladder_pass_timer = 0.0
-			print("PLATFORM LADDER: Pass-through cancelled - not on platform-ladder or not pressing down")
 
 func check_ladder_interaction() -> void:
 	if _is_input_locked():
@@ -781,7 +752,6 @@ func check_ladder_interaction() -> void:
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			ladder_types.append(str(tile_atlas_coords))
 		
-		print("LADDER CENTERING: Found ", ladder_tile_positions.size(), " ladder tiles (", ", ".join(ladder_types), "), center tile X: ", center_tile_x, " world X: ", ladder_center_x)
 	
 	# Handle ladder interaction
 	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
@@ -794,15 +764,11 @@ func check_ladder_interaction() -> void:
 			var tile_pos = tilemap.local_to_map(check_pos)
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
-			print("LADDER INTERACTION: Standing on platform-ladder: ", should_prevent_climbing, " tile: ", tile_atlas_coords)
 		
 		# Start climbing unless we're standing on platform-ladder with down input
 		if not should_prevent_climbing:
 			is_climbing = true
 			is_crouching = false # Can't crouch while climbing
-			print("LADDER INTERACTION: Starting climbing")
-		else:
-			print("LADDER INTERACTION: Preventing climbing - standing on platform-ladder with down input")
 	elif not ladder_found:
 		# No ladder nearby, stop climbing
 		if is_climbing:
@@ -819,7 +785,6 @@ func handle_climbing(delta: float) -> void:
 		if ladder_center_x != 0.0:
 			global_position.x = ladder_center_x
 			velocity.x = 0 # Stop any horizontal velocity
-			print("LADDER CENTERING: Immediately centered at X: ", ladder_center_x)
 	
 	# Handle vertical movement on ladder
 	var vertical_input = 0.0
@@ -932,7 +897,6 @@ func try_consume_buffered_jump() -> void:
 		do_jump()
 		jump_buffer_timer = 0.0
 		coyote_timer = 0.0
-		print("Buffered jump consumed! velocity.y: ", velocity.y)
 
 func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
 	"""Centralized jump function for consistent behavior"""
@@ -957,7 +921,5 @@ func handle_ledge_push_around() -> void:
 	# Push in the direction that has space
 	if right_free and not left_free:
 		global_position.x += ledge_push_amount
-		print("LEDGE PUSH: Pushed right by ", ledge_push_amount)
 	elif left_free and not right_free:
 		global_position.x -= ledge_push_amount
-		print("LEDGE PUSH: Pushed left by ", ledge_push_amount)

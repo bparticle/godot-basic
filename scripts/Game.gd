@@ -13,25 +13,17 @@ extends Node2D
 @onready var health_manager = get_node("/root/HealthManager")
 
 func _ready():
-	print("Game: _ready() called")
-	
 	# Connect to health manager signals
 	if health_manager:
-		print("Game: Connecting to health manager signals")
 		health_manager.player_died.connect(_on_player_died)
 		health_manager.game_over.connect(_on_game_over)
 		health_manager.health_changed.connect(_on_health_changed)
-	else:
-		print("Game: WARNING - HealthManager not found!")
 	
 	# Register this node as the game container
 	if room_manager:
-		print("Game: Setting game container and loading initial room: ", initial_room)
 		room_manager.set_game_container(self)
 		# Load the initial room
 		room_manager.load_initial_room(initial_room)
-	else:
-		print("Game: WARNING - RoomManager not found!")
 
 func _on_player_died():
 	"""Handle player death - respawn after a brief delay"""

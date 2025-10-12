@@ -19,7 +19,6 @@ func collect():
 		return
 	
 	is_collected = true
-	print("Collected small gem worth ", value, " points")
 	
 	# Play collection animation or effect here
 	# For now, just remove the collectible

@@ -31,20 +31,17 @@ func pause_game():
 	current_state = GameState.PAUSED
 	get_tree().paused = true
 	game_state_changed.emit("paused")
-	print("Game paused")
 
 func resume_game():
 	"""Resume the game"""
 	current_state = GameState.PLAYING
 	get_tree().paused = false
 	game_state_changed.emit("playing")
-	print("Game resumed")
 
 func game_over():
 	"""Trigger game over state"""
 	current_state = GameState.GAME_OVER
 	game_state_changed.emit("game_over")
-	print("Game over")
 
 func is_playing() -> bool:
 	return current_state == GameState.PLAYING

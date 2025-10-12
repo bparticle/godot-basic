@@ -24,7 +24,7 @@ var current_room_instance: Node2D
 var rooms: Dictionary = {}
 
 # Player instance
-var player_scene = preload("res://Player.tscn")
+var player_scene = preload("res://scenes/player/Player.tscn")
 var player_instance: CharacterBody2D
 
 # Game container reference
@@ -36,10 +36,10 @@ func _ready():
 
 func setup_rooms():
 	# Define all rooms with their scene paths
-	rooms["room_1"] = RoomData.new("room_1", "res://Room1.tscn", 600.0, 600.0)
-	rooms["room_2"] = RoomData.new("room_2", "res://Room2.tscn", 600.0, 600.0)
-	rooms["room_3"] = RoomData.new("room_3", "res://Room3.tscn", 600.0, 600.0)
-	rooms["room_4"] = RoomData.new("room_4", "res://Room4.tscn", 600.0, 600.0)
+	rooms["room_1"] = RoomData.new("room_1", "res://scenes/rooms/Room1.tscn", 600.0, 600.0)
+	rooms["room_2"] = RoomData.new("room_2", "res://scenes/rooms/Room2.tscn", 600.0, 600.0)
+	rooms["room_3"] = RoomData.new("room_3", "res://scenes/rooms/Room3.tscn", 600.0, 600.0)
+	rooms["room_4"] = RoomData.new("room_4", "res://scenes/rooms/Room4.tscn", 600.0, 600.0)
 
 func set_game_container(container: Node2D):
 	game_container = container
@@ -58,6 +58,7 @@ func change_room(room_id: String):
 	print("=== CHANGE_ROOM called with: ", room_id, " ===")
 	if not rooms.has(room_id):
 		print("Room '", room_id, "' not found!")
+		print("Available rooms: ", rooms.keys())
 		return
 	
 	# Unload current room
@@ -67,8 +68,16 @@ func change_room(room_id: String):
 	
 	# Load new room
 	current_room = rooms[room_id]
+	print("Loading room scene from: ", current_room.scene_path)
 	var room_scene = load(current_room.scene_path)
+	if not room_scene:
+		print("ERROR: Failed to load room scene: ", current_room.scene_path)
+		return
 	current_room_instance = room_scene.instantiate()
+	if not current_room_instance:
+		print("ERROR: Failed to instantiate room scene")
+		return
+	print("Room scene loaded and instantiated successfully")
 	
 	if game_container:
 		# Add room first (background layer)
@@ -84,11 +93,17 @@ func change_room(room_id: String):
 	
 	# Spawn or move player
 	if not player_instance:
+		print("Spawning new player instance")
 		player_instance = player_scene.instantiate()
+		if not player_instance:
+			print("ERROR: Failed to instantiate player scene")
+			return
 		if game_container:
 			# Add player after room (foreground layer)
 			game_container.add_child(player_instance)
+			print("Player added to game container")
 	else:
+		print("Moving existing player to top")
 		# Ensure player is on top
 		if game_container:
 			game_container.move_child(player_instance, -1)

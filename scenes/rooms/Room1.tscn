@@ -1,13 +1,9 @@
-[gd_scene load_steps=13 format=4 uid="uid://ehg7i4ipukg4"]
+[gd_scene load_steps=9 format=4 uid="uid://c881bufqvgtmd"]
 
-[ext_resource type="TileSet" uid="uid://pm14vtpiwfrk" path="res://arc_tileset.tres" id="1_tileset"]
+[ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_tileset"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="2_flag_tex"]
-[ext_resource type="Script" path="res://Door.gd" id="3_door_script"]
-[ext_resource type="Script" path="res://DeathZone.gd" id="4_death_script"]
-[ext_resource type="Script" path="res://SimpleCollectibleSpawner.gd" id="5_script"]
-[ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://GemSmall.tscn" id="6_scene"]
-[ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://GemLarge.tscn" id="7_scene"]
-[ext_resource type="PackedScene" path="res://Key.tscn" id="8_scene"]
+[ext_resource type="Script" path="res://scripts/doors/Door.gd" id="3_door_script"]
+[ext_resource type="Script" path="res://scripts/zones/DeathZone.gd" id="4_death_script"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
@@ -74,11 +70,6 @@ script = ExtResource("4_death_script")
 position = Vector2(372, 174)
 shape = SubResource("4_death_shape_right")
 
-[node name="CollectibleSpawner" type="Node2D" parent="."]
-script = ExtResource("5_script")
-gem_small_scene = ExtResource("6_scene")
-gem_large_scene = ExtResource("7_scene")
-key_scene = ExtResource("8_scene")
-gem_small_positions = Array[Vector2]([Vector2(200, 200), Vector2(300, 200)])
-gem_large_positions = Array[Vector2]([Vector2(250, 200), Vector2(350, 200)])
-key_positions = Array[Vector2]([Vector2(150, 200)])
+[node name="DeathZoneTop" type="Area2D" parent="."]
+position = Vector2(64, -10)
+script = ExtResource("4_death_script")

@@ -1,10 +1,10 @@
 [gd_scene load_steps=7 format=3 uid="uid://dpxv8kqxqxqxq"]
 
-[ext_resource type="Script" path="res://DoorStateMachine.gd" id="1_script"]
-[ext_resource type="Script" path="res://DoorClosedState.gd" id="2_script"]
-[ext_resource type="Script" path="res://DoorOpeningState.gd" id="3_script"]
-[ext_resource type="Script" path="res://DoorOpenState.gd" id="4_script"]
-[ext_resource type="Script" path="res://DoorClosingState.gd" id="5_script"]
+[ext_resource type="Script" path="res://scripts/states/DoorStateMachine.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/states/DoorClosedState.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/states/DoorOpeningState.gd" id="3_script"]
+[ext_resource type="Script" path="res://scripts/states/DoorOpenState.gd" id="4_script"]
+[ext_resource type="Script" path="res://scripts/states/DoorClosingState.gd" id="5_script"]
 
 [sub_resource type="RectangleShape2D" id="collision_shape"]
 size = Vector2(16, 32)

@@ -1,9 +1,9 @@
-[gd_scene load_steps=9 format=4 uid="uid://cmcjm5ocx48r2"]
+[gd_scene load_steps=9 format=4 uid="uid://bklyp5b2icvn1"]
 
-[ext_resource type="TileSet" uid="uid://pm14vtpiwfrk" path="res://arc_tileset.tres" id="1_g07y1"]
-[ext_resource type="Script" path="res://Door.gd" id="2_m7iwu"]
+[ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_g07y1"]
+[ext_resource type="Script" path="res://scripts/doors/Door.gd" id="2_m7iwu"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="3_2uc57"]
-[ext_resource type="Script" path="res://DeathZone.gd" id="4_bljh5"]
+[ext_resource type="Script" path="res://scripts/zones/DeathZone.gd" id="4_bljh5"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(9, 13)

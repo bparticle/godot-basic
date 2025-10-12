@@ -1,12 +1,19 @@
 extends CharacterBody2D
 
-# Movement constants
-const SPEED = 60.0
-const CROUCH_SPEED = 30.0 # Slower when crouching
-const CLIMB_SPEED = 40.0 # Speed when climbing ladders
-const JUMP_VELOCITY = -240.0
-const ACCELERATION = 400.0
-const FRICTION = 400.0
+# Movement constants - now configurable in editor
+@export_group("Movement Settings")
+@export var speed: float = 60.0
+@export var crouch_speed: float = 30.0 # Slower when crouching
+@export var climb_speed: float = 40.0 # Speed when climbing ladders
+@export var jump_velocity: float = -240.0
+@export var acceleration: float = 400.0
+@export var friction: float = 400.0
+
+# Visual settings
+@export_group("Visual Settings")
+@export var player_color: Color = Color.WHITE
+@export var debug_draw_collision: bool = false
+@export var debug_draw_movement: bool = false
 
 # Jump system - simple UP key jumping
 @export var jump_power: float = 1.0 # Jump power multiplier
@@ -52,6 +59,10 @@ func _ready():
 	# Listen for health changes to detect death
 	if health_manager:
 		health_manager.health_changed.connect(_on_health_changed)
+	
+	# Apply visual settings
+	if animated_sprite:
+		animated_sprite.modulate = player_color
 
 # State
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -258,13 +269,13 @@ func apply_gravity(delta: float) -> void:
 
 func handle_movement(delta: float) -> void:
 	var direction = 0.0 if _is_input_locked() else Input.get_axis("ui_left", "ui_right")
-	var current_speed = CROUCH_SPEED if is_crouching else SPEED
+	var current_speed = crouch_speed if is_crouching else speed
 	
 	# Handle horizontal movement
 	if direction != 0:
-		velocity.x = move_toward(velocity.x, direction * current_speed, ACCELERATION * delta)
+		velocity.x = move_toward(velocity.x, direction * current_speed, acceleration * delta)
 	else:
-		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
+		velocity.x = move_toward(velocity.x, 0, friction * delta)
 
 func update_animation() -> void:
 	# If dead, show appropriate animation using named clips
@@ -609,6 +620,27 @@ func _on_room_changed(_room_data, _spawn_pos):
 func _is_input_locked() -> bool:
 	return Time.get_ticks_msec() < input_locked_until_ms
 
+func _draw():
+	"""Debug drawing for collision shapes and movement"""
+	if not debug_draw_collision and not debug_draw_movement:
+		return
+	
+	if debug_draw_collision and collision_shape:
+		var shape = collision_shape.shape as RectangleShape2D
+		if shape:
+			# Draw collision shape
+			var rect = Rect2(collision_shape.position - shape.size / 2, shape.size)
+			draw_rect(rect, Color.RED, false, 2.0)
+	
+	if debug_draw_movement:
+		# Draw velocity vector
+		var velocity_end = global_position + velocity * 0.1
+		draw_line(Vector2.ZERO, velocity_end - global_position, Color.BLUE, 2.0)
+		# Draw movement direction
+		if abs(velocity.x) > 0:
+			var direction = 1 if velocity.x > 0 else -1
+			draw_line(Vector2.ZERO, Vector2(direction * 20, 0), Color.GREEN, 3.0)
+
 func handle_crouch_input() -> void:
 	if _is_input_locked():
 		return
@@ -796,7 +828,7 @@ func handle_climbing(delta: float) -> void:
 	elif Input.is_action_pressed("ui_down"):
 		vertical_input = 1.0
 	
-	velocity.y = vertical_input * CLIMB_SPEED
+	velocity.y = vertical_input * climb_speed
 	
 	# Handle horizontal movement while climbing
 	var horizontal_input = Input.get_axis("ui_left", "ui_right")
@@ -833,7 +865,7 @@ func apply_ladder_centering(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, centering_force, (ladder_centering_strength * 0.5) * delta)
 	else:
 		# If we're close to center, just decelerate smoothly
-		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
+		velocity.x = move_toward(velocity.x, 0, friction * delta)
 
 func check_ceiling_clearance() -> void:
 	# Only check ceiling clearance if we're not already crouching due to input
@@ -902,7 +934,7 @@ func try_consume_buffered_jump() -> void:
 		coyote_timer = 0.0
 		print("Buffered jump consumed! velocity.y: ", velocity.y)
 
-func do_jump(jump_strength: float = JUMP_VELOCITY * jump_power) -> void:
+func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
 	"""Centralized jump function for consistent behavior"""
 	jump_phase = "up"
 	velocity.y = jump_strength

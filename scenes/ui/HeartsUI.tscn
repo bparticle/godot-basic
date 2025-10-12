@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://heartsui001"]
 
-[ext_resource type="Script" path="res://HeartsUI.gd" id="1_hearts_script"]
+[ext_resource type="Script" path="res://scripts/ui/HeartsUI.gd" id="1_hearts_script"]
 
 [node name="HeartsUI" type="Control"]
 layout_mode = 3

@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://dd1ropsrqyuyr"]
+[gd_scene load_steps=3 format=3 uid="uid://b71do4mr68mqx"]
 
-[ext_resource type="PackedScene" uid="uid://ca36nytglthln" path="res://Player.tscn" id="1_player"]
-[ext_resource type="Script" path="res://Door.gd" id="2_door_script"]
+[ext_resource type="PackedScene" uid="uid://c1234player" path="res://scenes/player/Player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/doors/Door.gd" id="2_door_script"]
 
 [node name="RoomExample" type="Node2D"]
 

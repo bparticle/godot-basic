@@ -11,15 +11,15 @@ config_version=5
 [application]
 
 config/name="pimpa-raka"
-run/main_scene="res://Game.tscn"
+run/main_scene="res://scenes/Game.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
-RoomManager="*res://RoomManager.gd"
-HealthManager="*res://HealthManager.gd"
-GameStateManager="*res://GameStateManager.gd"
+RoomManager="*res://scripts/managers/RoomManager.gd"
+HealthManager="*res://scripts/managers/HealthManager.gd"
+GameStateManager="*res://scripts/managers/GameStateManager.gd"
 
 [display]
 

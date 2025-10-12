@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3 uid="uid://cgh6nlq6jv47o"]
+
+[ext_resource type="Script" path="res://GemSmall.gd" id="1_script"]
+[ext_resource type="Script" path="res://CollectibleStateMachine.gd" id="2_script"]
+[ext_resource type="Script" path="res://CollectibleIdleState.gd" id="3_script"]
+[ext_resource type="Script" path="res://CollectibleCollectedState.gd" id="4_script"]
+
+[sub_resource type="RectangleShape2D" id="collision_shape"]
+size = Vector2(8, 8)
+
+[node name="GemSmall" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("collision_shape")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("2_script")
+initial_state = "idle"
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("3_script")
+
+[node name="Collected" type="Node" parent="StateMachine"]
+script = ExtResource("4_script")

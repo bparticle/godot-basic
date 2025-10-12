@@ -1,7 +1,7 @@
 extends Node2D
 
 @export_group("Game Settings")
-@export var initial_room: String = "room_1"
+@export var initial_room: String = "room_0"  # Single source of truth for starting room
 @export var respawn_delay: float = 1.0
 @export var game_over_delay: float = 1.0
 

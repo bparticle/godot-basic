@@ -45,7 +45,7 @@ func setup_rooms():
 func set_game_container(container: Node2D):
 	game_container = container
 
-func load_initial_room(room_id: String = "room_0"):
+func load_initial_room(room_id: String):
 	change_room(room_id)
 
 func cleanup():

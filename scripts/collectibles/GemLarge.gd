@@ -1,25 +1,7 @@
-extends Area2D
+extends Collectible
 
 # Large gem collectible
-@export var value: int = 10
-@export var collectible_type: String = "large_gem"
-
-var is_collected: bool = false
-
 func _ready():
-	# Connect to body entered signal
-	body_entered.connect(_on_body_entered)
-
-func _on_body_entered(body):
-	if body.is_in_group("player") and not is_collected:
-		collect()
-
-func collect():
-	if is_collected:
-		return
-	
-	is_collected = true
-	
-	# Play collection animation or effect here
-	# For now, just remove the collectible
-	queue_free()
+	value = 10
+	collectible_type = "Large Gem"
+	super._ready()

@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://scripts/zones/DeathZone.gd" id="4_death_script"]
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="5_gem_large"]
 [ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://scenes/collectibles/GemSmall.tscn" id="6_gem_small"]
-[ext_resource type="PackedScene" path="res://scenes/collectibles/Key.tscn" id="7_key"]
+[ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="7_key"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
@@ -75,21 +75,33 @@ shape = SubResource("4_death_shape_right")
 
 [node name="GemLarge1" parent="." instance=ExtResource("5_gem_large")]
 position = Vector2(257, 391)
+value = 1
+collectible_type = "gem"
 
 [node name="GemLarge2" parent="." instance=ExtResource("5_gem_large")]
 position = Vector2(232, 249)
+value = 1
+collectible_type = "gem"
 
 [node name="GemSmall1" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(228, 177)
+value = null
+collectible_type = null
 
 [node name="GemSmall2" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(273, 391)
+value = null
+collectible_type = null
 
 [node name="GemSmall3" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(390, 473)
+value = null
+collectible_type = null
 
 [node name="GemSmall4" parent="." instance=ExtResource("6_gem_small")]
 position = Vector2(372, 259)
+value = null
+collectible_type = null
 
 [node name="Key1" parent="." instance=ExtResource("7_key")]
 position = Vector2(193, 107)

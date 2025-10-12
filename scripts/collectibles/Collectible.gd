@@ -1,4 +1,5 @@
 extends Area2D
+class_name Collectible
 
 # Simple collectible item base class
 @export var value: int = 1

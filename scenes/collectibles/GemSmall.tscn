@@ -1,6 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://cgh6nlq6jv47o"]
+[gd_scene load_steps=5 format=3 uid="uid://cgh6nlq6jv47o"]
 
 [ext_resource type="Script" path="res://scripts/collectibles/GemSmall.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://d3r5gl3u24sly" path="res://assets/tiles/pixelassets.png" id="2_texture"]
+
+[sub_resource type="AtlasTexture" id="gem_small_atlas"]
+atlas = ExtResource("2_texture")
+region = Rect2(32, 8, 8, 8)
 
 [sub_resource type="RectangleShape2D" id="collision_shape"]
 size = Vector2(8, 8)
@@ -8,10 +13,10 @@ size = Vector2(8, 8)
 [node name="GemSmall" type="Area2D"]
 script = ExtResource("1_script")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("gem_small_atlas")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("collision_shape")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
-

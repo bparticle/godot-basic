@@ -1,0 +1,36 @@
+[gd_scene load_steps=8 format=3 uid="uid://bqxv8kqxqxqxq"]
+
+[ext_resource type="Script" path="res://Enemy.gd" id="1_script"]
+[ext_resource type="Script" path="res://EnemyMovementComponent.gd" id="2_script"]
+[ext_resource type="Script" path="res://StateMachine.gd" id="3_script"]
+[ext_resource type="Script" path="res://EnemyIdleState.gd" id="4_script"]
+[ext_resource type="Script" path="res://EnemyChaseState.gd" id="5_script"]
+[ext_resource type="Script" path="res://EnemyAttackState.gd" id="6_script"]
+
+[sub_resource type="RectangleShape2D" id="collision_shape"]
+size = Vector2(8, 16)
+
+[node name="Enemy" type="CharacterBody2D"]
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8)
+shape = SubResource("collision_shape")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_script")
+initial_state = "idle"
+
+[node name="MovementComponent" type="Node" parent="."]
+script = ExtResource("2_script")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("4_script")
+
+[node name="Chase" type="Node" parent="StateMachine"]
+script = ExtResource("5_script")
+
+[node name="Attack" type="Node" parent="StateMachine"]
+script = ExtResource("6_script")

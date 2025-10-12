@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 RoomManager="*res://RoomManager.gd"
 HealthManager="*res://HealthManager.gd"
+GameStateManager="*res://GameStateManager.gd"
 
 [display]
 

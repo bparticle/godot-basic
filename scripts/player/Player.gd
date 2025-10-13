@@ -458,7 +458,7 @@ func handle_blinking() -> void:
 		# Check if we should start blinking
 		if not is_blinking and idle_timer > 1.0: # Wait at least 1 second before blinking
 			var time_since_last_blink = idle_timer - last_blink_time
-			var should_blink = time_since_last_blink > randf_range(blink_interval_min, blink_interval_max)
+			var should_blink = time_since_last_blink > RNG.randf_range(blink_interval_min, blink_interval_max)
 			
 			if should_blink:
 				# Sync the blink with the idle animation cycle

@@ -1,14 +1,10 @@
 [gd_scene load_steps=6 format=3 uid="uid://bu1v08yjf0suw"]
 
 [ext_resource type="Script" path="res://GameOver.gd" id="1_gameover_script"]
-
-[sub_resource type="SystemFont" id="system_font"]
-antialiasing = 0
-hinting = 0
-subpixel_positioning = 0
+[ext_resource type="FontFile" path="res://fonts/MedodicaRegular.otf" id="2_medodica_font"]
 
 [sub_resource type="Theme" id="theme_pixel"]
-default_font = SubResource("system_font")
+default_font = ExtResource("2_medodica_font")
 
 [sub_resource type="StyleBoxFlat" id="button_hover"]
 bg_color = Color(0.3, 0.3, 0.35, 1)
@@ -63,7 +59,7 @@ theme_override_constants/separation = 4
 [node name="GameOverLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "GAME OVER"
 horizontal_alignment = 1
 
@@ -74,6 +70,7 @@ layout_mode = 2
 [node name="RestartButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(60, 16)
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 theme_override_styles/hover = SubResource("button_hover")
 theme_override_styles/normal = SubResource("button_normal")
 text = "Restart"
@@ -81,6 +78,7 @@ text = "Restart"
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(60, 16)
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 theme_override_styles/hover = SubResource("button_hover")
 theme_override_styles/normal = SubResource("button_normal")
 text = "Quit"

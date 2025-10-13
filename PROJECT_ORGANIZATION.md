@@ -37,7 +37,9 @@ scripts/
 ├── managers/         # Game management scripts
 │   ├── GameStateManager.gd
 │   ├── HealthManager.gd
-│   └── RoomManager.gd
+│   ├── RoomManager.gd
+│   ├── RNG.gd
+│   └── SceneChanger.gd
 ├── states/           # State machine scripts
 │   ├── State.gd
 │   ├── StateMachine.gd
@@ -234,6 +236,8 @@ run/main_scene="res://scenes/Game.tscn"
 RoomManager="*res://scripts/managers/RoomManager.gd"
 HealthManager="*res://scripts/managers/HealthManager.gd"
 GameStateManager="*res://scripts/managers/GameStateManager.gd"
+RNG="*res://scripts/managers/RNG.gd"
+SceneChanger="*res://scripts/managers/SceneChanger.gd"
 ```
 
 ### Script References
@@ -299,6 +303,8 @@ var player_state: PlayerState:
 5. **Group related files** in appropriate folders
 6. **Add @export variables** for configurable values
 7. **Include debug options** for new features
+8. **Use RNG** for all randomness, not global `rand*` functions
+9. **Use SceneChanger** for user-facing scene transitions
 
 ## 🚀 Future Additions
 

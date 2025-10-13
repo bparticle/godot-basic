@@ -7,7 +7,7 @@ extends Camera2D
 @onready var room_manager = get_node("/root/RoomManager")
 
 var viewport_size: Vector2
-var follow_speed: float = 5.0
+var follow_speed: float = 8.0  # Increased for more responsive camera in Godot 4.5
 var player: CharacterBody2D
 
 
@@ -21,7 +21,10 @@ func _ready():
 	if room_manager:
 		room_manager.room_changed.connect(_on_room_changed)
 
-func _process(delta: float):
+func _physics_process(delta: float):
+	# Using _physics_process instead of _process for smoother camera movement in Godot 4.5
+	# This ensures the camera updates in sync with the physics engine, reducing jitter
+	
 	# Get player reference from room manager if we don't have it
 	if not player and room_manager:
 		player = room_manager.get_player()
@@ -44,8 +47,10 @@ func _process(delta: float):
 	elif distance_to_target < 10.0:
 		adaptive_speed = follow_speed * 0.5  # Slower when close for smooth settling
 	
-	# Smoothly move camera towards target position
-	global_position = global_position.lerp(target_position, adaptive_speed * delta)
+	# Smoothly move camera towards target position with sub-pixel precision
+	# Using exponential smoothing for ultra-smooth camera movement
+	var lerp_factor = 1.0 - exp(-adaptive_speed * delta)
+	global_position = global_position.lerp(target_position, lerp_factor)
 	
 	
 

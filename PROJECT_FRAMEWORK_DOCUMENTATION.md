@@ -25,6 +25,8 @@ Game (Node2D)
 ├── RoomManager (Singleton)
 ├── HealthManager (Singleton) 
 ├── GameStateManager (Singleton)
+├── RNG (Singleton)
+├── SceneChanger (Singleton, CanvasLayer)
 ├── SmartCamera (Camera2D)
 ├── HeartsUI (Control)
 └── Current Room Instance
@@ -309,6 +311,58 @@ var color = GameColors.get_color_by_name("peach")
 # By category
 var warm_colors = GameColors.get_warm_tones()
 ```
+
+---
+
+## 🔁 Global Utilities
+
+### RNG (Singleton)
+**Location**: `scripts/managers/RNG.gd`
+
+Centralized random number generation for deterministic builds and consistent seeding.
+
+#### Usage
+```gdscript
+# Float in [0,1)
+var x := RNG.randf()
+
+# Float in range
+var t := RNG.randf_range(2.0, 5.0)
+
+# Int in [0, 2^32)
+var n := RNG.randi()
+
+# Int in range (inclusive)
+var k := RNG.randi_range(1, 6)
+
+# Optional: set fixed seed (e.g., from save data or debug)
+RNG.set_seed(123456)
+```
+
+#### Policy
+- Do NOT use `randf`, `randi`, or `randf_range` directly. Always use `RNG`.
+- Use `RNG.set_seed(seed_value)` to make runs reproducible when needed.
+
+---
+
+### SceneChanger (Singleton)
+**Location**: `scripts/managers/SceneChanger.gd`
+
+Provides simple fade transitions for scene changes via a global `CanvasLayer`.
+
+#### Usage
+```gdscript
+# Fade to a new scene
+SceneChanger.change_scene_to_file("res://scenes/ui/GameOver.tscn")
+```
+
+#### Notes
+- Automatically sizes to viewport and listens for resize changes.
+- Fade color and duration are exported and can be tweaked in the Inspector.
+
+#### Policy
+- Replace direct calls to `get_tree().change_scene_to_file()` with `SceneChanger.change_scene_to_file()` for user-facing transitions.
+- For internal/non-visual fast changes (rare), document why `SceneChanger` is intentionally skipped.
 
 ---
 

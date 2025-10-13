@@ -19,7 +19,7 @@ func enter():
 	
 	# Start patrol timer
 	patrol_timer = 0.0
-	patrol_direction = 1.0 if randf() > 0.5 else -1.0
+    patrol_direction = 1.0 if RNG.randf() > 0.5 else -1.0
 
 func update(delta: float):
 	patrol_timer += delta

@@ -40,8 +40,8 @@ func _on_game_over():
 	# Clean up room manager before changing scenes
 	if room_manager:
 		room_manager.cleanup()
-	# Use call_deferred to avoid physics callback issues
-	get_tree().call_deferred("change_scene_to_file", "res://scenes/ui/GameOver.tscn")
+	# Fade transition to game over scene via SceneChanger singleton
+	SceneChanger.change_scene_to_file("res://scenes/ui/GameOver.tscn")
 
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - trigger game over when lives reach 0"""

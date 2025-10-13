@@ -43,6 +43,14 @@ func update_platformer_timers(delta: float):
 	else:
 		coyote_timer = max(0.0, coyote_timer - delta)
 	
+	# Reset jump phase when coyote time expires and we're not actually jumping
+	# This fixes the issue where jump animation gets stuck after coyote time
+	if coyote_timer <= 0.0 and parent.jump_phase != parent.JumpPhase.NONE and not parent.is_on_floor() and parent.velocity.y >= 0:
+		# Only reset if we're not in a proper jump (velocity.y >= 0 means we're falling, not jumping up)
+		# and we're not in the middle of a legitimate jump sequence
+		if parent.jump_phase == parent.JumpPhase.UP or parent.jump_phase == parent.JumpPhase.PEAK:
+			parent.jump_phase = parent.JumpPhase.NONE
+	
 	# Track floor state for next frame
 	was_on_floor = parent.is_on_floor()
 

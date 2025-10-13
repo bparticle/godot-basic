@@ -101,6 +101,9 @@ func change_room(room_id: String):
 	player_instance.global_position = spawn_pos
 	# Ensure player starts stationary after room change
 	player_instance.velocity = Vector2.ZERO
+	# Reset death state when changing rooms
+	if player_instance.has_method("reset_death_state"):
+		player_instance.reset_death_state()
 	
 	# Update spawn point in HealthManager
 	var health_manager = get_node_or_null("/root/HealthManager")
@@ -128,6 +131,9 @@ func respawn_player():
 			player_instance.global_position = respawn_pos
 			# Reset player velocity
 			player_instance.velocity = Vector2.ZERO
+			# Reset death state
+			if player_instance.has_method("reset_death_state"):
+				player_instance.reset_death_state()
 
 func get_current_room() -> RoomData:
 	return current_room

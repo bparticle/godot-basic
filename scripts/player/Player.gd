@@ -33,6 +33,11 @@ enum JumpPhase {
 @export var debug_draw_collision: bool = false
 @export var debug_draw_movement: bool = false
 
+# Death tile visual feedback
+@export_group("Death Tile Effects")
+@export var flash_intensity_max: float = 0.7 # Maximum flash intensity (0.0 = no effect, 1.0 = full white)
+@export var flash_duration: float = 0.3 # How long the flash lasts in seconds
+
 # Jump system - simple UP key jumping
 @export var jump_power: float = 1.0 # Jump power multiplier
 
@@ -81,6 +86,12 @@ func _ready():
 	# Apply visual settings
 	if animated_sprite:
 		animated_sprite.modulate = player_color
+	
+	# Load and setup white flash shader
+	white_flash_shader = load("res://shaders/white_flash.gdshader")
+	if white_flash_shader and animated_sprite:
+		animated_sprite.material = ShaderMaterial.new()
+		animated_sprite.material.shader = white_flash_shader
 
 # State
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -175,10 +186,29 @@ const SPIKE_ATLAS_COORD: Vector2i = Vector2i(1, 1) # (col=1,row=1) second column
 # Death state
 var is_dead = false
 var has_shown_death_knockback = false
+var death_tile_hit = false # Flag for death tile contact
+var was_touching_death_tile = false # Persistent flag for death tile contact
+var damage_animation_timer = 0.0 # Timer for damage animation
+var show_damage_animation = false # Flag to show damage animation
+
+# Shader for white flash effect
+var white_flash_shader: Shader
+var flash_intensity: float = 0.0
+
+# Death tile coordinates (atlas coordinates)
+const DEATH_TILES = [
+	Vector2i(0, 1), # (0,1)
+	Vector2i(6, 0), # (6,0)
+	Vector2i(6, 1), # (6,1)
+	Vector2i(7, 2)  # (7,2)
+]
 
 func _physics_process(delta: float) -> void:
 	# Always check for spike damage first, even when dead
 	handle_spike_damage()
+	
+	# Check for death tiles
+	handle_death_tiles()
 	
 	# If dead, only show dead animation and don't process anything else
 	if is_dead:
@@ -193,6 +223,15 @@ func _physics_process(delta: float) -> void:
 	
 	# Update platformer improvement timers
 	update_platformer_timers(delta)
+	
+	# Update damage animation timer
+	if damage_animation_timer > 0:
+		damage_animation_timer -= delta
+		if damage_animation_timer <= 0:
+			show_damage_animation = false
+	
+	# Update white flash shader
+	update_white_flash_shader(delta)
 	
 	# Handle state-specific logic
 	if is_climbing:
@@ -320,15 +359,27 @@ func handle_movement(delta: float) -> void:
 func update_animation() -> void:
 	# If dead, show appropriate animation using named clips
 	if is_dead:
+		print("update_animation: is_dead = ", is_dead, " has_shown_death_knockback = ", has_shown_death_knockback, " was_touching_death_tile = ", was_touching_death_tile)
 		if not has_shown_death_knockback:
 			# During final knockback, show falling sprite via jump_down animation
+			print("Showing jump_down animation")
 			if animated_sprite.animation != "jump_down":
 				animated_sprite.play("jump_down")
 		else:
-			# After knockback, show dedicated dead sprite
-			if animated_sprite.animation != "dead":
-				animated_sprite.play("dead")
+			# After knockback, show appropriate dead sprite based on how death occurred
+			if was_touching_death_tile:
+				# Show death tile sprite for death tile contact
+				print("Showing death tile sprite, was_touching_death_tile = ", was_touching_death_tile)
+				if animated_sprite.animation != "death_tile":
+					animated_sprite.play("death_tile")
+			else:
+				# Show regular dead sprite for other deaths
+				print("Showing regular dead sprite, was_touching_death_tile = ", was_touching_death_tile)
+				if animated_sprite.animation != "dead":
+					animated_sprite.play("dead")
 		return
+	
+	# Note: Damage animation is now handled by white flash shader
 	
 	# Handle sprite flipping
 	if velocity.x < 0:
@@ -581,10 +632,52 @@ func handle_spike_damage() -> void:
 	
 	# Note: Sprite is now handled by update_animation() based on is_dead and has_shown_death_knockback
 
+func handle_death_tiles() -> void:
+	"""Check if player is touching death tiles and set animation flag"""
+	# If dead and already showed final knockback, stop checking death tiles entirely
+	if is_dead and has_shown_death_knockback:
+		return
+	
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
+	if not tilemap:
+		return
+	
+	# Sample a few points around the player's body to detect death tiles
+	var sample_points: Array[Vector2] = []
+	var half_width = 3.0
+	var half_height = 6.0
+	# Feet row
+	sample_points.append(global_position + Vector2(0, 0))
+	sample_points.append(global_position + Vector2(-half_width, 0))
+	sample_points.append(global_position + Vector2(half_width, 0))
+	# Mid row
+	sample_points.append(global_position + Vector2(0, -half_height))
+	sample_points.append(global_position + Vector2(-half_width, -half_height))
+	sample_points.append(global_position + Vector2(half_width, -half_height))
+
+	var death_tile_detected = false
+	for p in sample_points:
+		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
+		if atlas in DEATH_TILES:
+			death_tile_detected = true
+			break
+
+	if death_tile_detected:
+		# Set death tile hit flag for animation - no damage applied
+		# The existing death zones will handle the actual damage
+		death_tile_hit = true
+		was_touching_death_tile = true
+		# Trigger white flash shader effect
+		trigger_white_flash()
+		# Debug: Print to confirm death tile detection
+		print("Death tile detected! Triggering white flash effect")
+
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - set dead state when lives reach 0"""
 	if current_lives <= 0 and not is_dead:
 		is_dead = true
+		print("Player died! is_dead = ", is_dead, " was_touching_death_tile = ", was_touching_death_tile)
 		# Don't stop movement immediately - let spike damage handle knockback first
 		# velocity = Vector2.ZERO
 
@@ -640,6 +733,34 @@ func _on_room_changed(_room_data, _spawn_pos):
 	# Lock input briefly and reset velocity when entering a new room
 	input_locked_until_ms = Time.get_ticks_msec() + input_lock_duration_ms
 	velocity = Vector2.ZERO
+
+func trigger_white_flash():
+	"""Trigger white flash effect when touching death tiles"""
+	flash_intensity = flash_intensity_max
+	damage_animation_timer = flash_duration # Flash for the configured duration
+
+func update_white_flash_shader(delta: float):
+	"""Update white flash shader parameters"""
+	if damage_animation_timer > 0:
+		var progress = 1.0 - (damage_animation_timer / flash_duration) # Normalize to 0-1
+		flash_intensity = flash_intensity_max * (1.0 - progress) # Fade out over time
+	else:
+		flash_intensity = 0.0
+	
+	# Apply shader parameters
+	if animated_sprite and animated_sprite.material:
+		animated_sprite.material.set_shader_parameter("flash_intensity", flash_intensity)
+		animated_sprite.material.set_shader_parameter("flash_duration", 0.0) # Not used in current shader
+
+func reset_death_state():
+	"""Reset death state when respawning"""
+	is_dead = false
+	has_shown_death_knockback = false
+	death_tile_hit = false
+	was_touching_death_tile = false
+	show_damage_animation = false
+	damage_animation_timer = 0.0
+	flash_intensity = 0.0
 
 func _is_input_locked() -> bool:
 	return Time.get_ticks_msec() < input_locked_until_ms

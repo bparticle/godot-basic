@@ -18,6 +18,7 @@ func _ready():
 		health_manager.player_died.connect(_on_player_died)
 		health_manager.game_over.connect(_on_game_over)
 		health_manager.health_changed.connect(_on_health_changed)
+		print("Game.gd: Connected to HealthManager signals")
 	
 	# Register this node as the game container
 	if room_manager:
@@ -35,18 +36,22 @@ func _on_player_died():
 
 func _on_game_over():
 	"""Handle game over"""
+	print("Game.gd: _on_game_over() called")
 	# Allow a short delay so the final knockback/life change is visible
 	await get_tree().create_timer(game_over_delay).timeout
+	print("Game.gd: Game over delay finished, changing scene")
 	# Clean up room manager before changing scenes
 	if room_manager:
 		room_manager.cleanup()
 	# Fade transition to game over scene via SceneChanger singleton
 	SceneChanger.change_scene_to_file("res://scenes/ui/GameOver.tscn")
+	print("Game.gd: Scene change requested to GameOver")
 
 func _on_health_changed(current_lives: int, _max_lives: int):
-	"""Handle health changes - trigger game over when lives reach 0"""
-	if current_lives <= 0:
-		_on_game_over()
+	"""Handle health changes - just track health, don't trigger game over here"""
+	print("Game.gd: Health changed to ", current_lives, " lives")
+	# Don't trigger game over here - let the direct game_over signal handle it
+	# This prevents double-triggering of game over
 
 func _draw():
 	"""Debug drawing for game information"""

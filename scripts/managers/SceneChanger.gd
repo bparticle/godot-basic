@@ -43,9 +43,13 @@ func _create_fade_animation():
 	_anim.add_animation_library("", library)
 
 func change_scene_to_file(path: String) -> void:
+	print("SceneChanger: Starting scene change to: ", path)
 	_anim.play("fade_in")
 	await _anim.animation_finished
+	print("SceneChanger: Fade in complete, changing scene")
 	get_tree().call_deferred("change_scene_to_file", path)
 	await get_tree().process_frame
+	print("SceneChanger: Scene changed, starting fade out")
 	_anim.play("fade_out")
 	await _anim.animation_finished
+	print("SceneChanger: Scene change complete")

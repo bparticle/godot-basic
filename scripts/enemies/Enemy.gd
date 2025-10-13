@@ -1,8 +1,21 @@
-class_name Enemy
 extends CharacterBody2D
 
 # Simple enemy with state machine AI
 # Follows the tutorial pattern for enemy AI
+
+# Enums for better code organization
+enum EnemyState {
+	IDLE,
+	CHASING,
+	ATTACKING,
+	DEAD
+}
+
+enum EnemyType {
+	BASIC,
+	FAST,
+	HEAVY
+}
 
 @export_group("Enemy Stats")
 @export var speed: float = 30.0
@@ -28,6 +41,24 @@ extends CharacterBody2D
 var target: CharacterBody2D
 var health: int
 var is_dead: bool = false
+
+# Enemy state with getter/setter
+var _enemy_state: EnemyState = EnemyState.IDLE
+var enemy_state: EnemyState:
+	get:
+		return _enemy_state
+	set(value):
+		_enemy_state = value
+		# Add any state change logic here if needed
+
+# Enemy type with getter/setter
+var _enemy_type: EnemyType = EnemyType.BASIC
+var enemy_type: EnemyType:
+	get:
+		return _enemy_type
+	set(value):
+		_enemy_type = value
+		# Add any type change logic here if needed
 
 func _ready():
 	# Add to enemy group

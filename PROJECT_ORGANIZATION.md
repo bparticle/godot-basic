@@ -118,6 +118,24 @@ resources/
 
 ### Player Script (`scripts/player/Player.gd`)
 ```gdscript
+# Enums for better code organization
+enum PlayerState {
+	IDLE,
+	WALKING,
+	JUMPING,
+	CROUCHING,
+	CLIMBING,
+	DEAD
+}
+
+enum JumpPhase {
+	NONE,
+	UP,
+	PEAK,
+	DOWN,
+	LAND
+}
+
 @export_group("Movement Settings")
 @export var speed: float = 60.0
 @export var crouch_speed: float = 30.0
@@ -134,6 +152,20 @@ resources/
 
 ### Enemy Script (`scripts/enemies/Enemy.gd`)
 ```gdscript
+# Enums for better code organization
+enum EnemyState {
+	IDLE,
+	CHASING,
+	ATTACKING,
+	DEAD
+}
+
+enum EnemyType {
+	BASIC,
+	FAST,
+	HEAVY
+}
+
 @export_group("Enemy Stats")
 @export var speed: float = 30.0
 @export var detection_range: float = 100.0
@@ -224,6 +256,39 @@ GameStateManager="*res://scripts/managers/GameStateManager.gd"
 ### Game Debug
 - `debug_show_room_info` - Shows current room information
 - `debug_show_player_info` - Shows player health information
+
+## 🚀 Godot Best Practices Implementation
+
+### 1. **@export_group for Organization** ✅
+- **Tip**: Use `@export_group("Group Name")` to organize export variables in collapsible groups
+- **Implementation**: Already implemented throughout the project
+- **Benefit**: Cleaner inspector, easier to find related settings
+
+### 2. **Node Reference Best Practices** ✅
+- **Tip**: Use `%NodeName` for unique scene references, `$NodeName` for direct children
+- **Implementation**: Using `$` for direct child references (more reliable for current scene structure)
+- **Benefit**: `%` references are robust against scene changes, `$` references are simpler for direct children
+- **Example**: `@onready var animated_sprite = $AnimatedSprite2D`
+- **Note**: To use `%` references, nodes need unique names set in the scene editor
+
+### 3. **Getters and Setters** ✅
+- **Tip**: Use getters/setters for important variables to centralize logic
+- **Implementation**: Added to Player.gd and Enemy.gd for state management
+- **Benefit**: Cleaner code, centralized state change logic
+- **Example**: 
+```gdscript
+var _player_state: PlayerState = PlayerState.IDLE
+var player_state: PlayerState:
+	get: return _player_state
+	set(value): _player_state = value
+```
+
+### 4. **Enums for Constants** ✅
+- **Tip**: Use enums instead of magic numbers/strings for better type safety
+- **Implementation**: Added PlayerState, JumpPhase, EnemyState, EnemyType enums
+- **Benefit**: Type safety, autocomplete, refactoring safety
+- **Example**: `jump_phase = JumpPhase.UP` instead of `jump_phase = "up"`
+
 
 ## 📝 Maintenance Rules
 

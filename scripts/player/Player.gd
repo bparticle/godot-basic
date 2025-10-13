@@ -1,5 +1,23 @@
 extends CharacterBody2D
 
+# Enums for better code organization
+enum PlayerState {
+	IDLE,
+	WALKING,
+	JUMPING,
+	CROUCHING,
+	CLIMBING,
+	DEAD
+}
+
+enum JumpPhase {
+	NONE,
+	UP,
+	PEAK,
+	DOWN,
+	LAND
+}
+
 # Movement constants - now configurable in editor
 @export_group("Movement Settings")
 @export var speed: float = 60.0
@@ -45,7 +63,7 @@ extends CharacterBody2D
 @export var collision_climb_size: Vector2 = Vector2(4, 14)
 @export var collision_climb_offset: Vector2 = Vector2(0, -7)
 
-# References
+# References - Using $ for direct child references (more reliable for current scene structure)
 @onready var animated_sprite = $AnimatedSprite2D
 @onready var collision_shape = $CollisionShape2D
 @onready var room_manager = get_node("/root/RoomManager")
@@ -69,8 +87,33 @@ var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 var current_animation = ""
 var input_locked_until_ms: int = 0
 @export var input_lock_duration_ms: int = 150
-var is_crouching = false
-var is_climbing = false
+
+# Player state with getter/setter
+var _player_state: PlayerState = PlayerState.IDLE
+var player_state: PlayerState:
+	get:
+		return _player_state
+	set(value):
+		_player_state = value
+		# Add any state change logic here if needed
+
+# Movement states with getters/setters
+var _is_crouching: bool = false
+var is_crouching: bool:
+	get:
+		return _is_crouching
+	set(value):
+		_is_crouching = value
+		# Add crouch state change logic here if needed
+
+var _is_climbing: bool = false
+var is_climbing: bool:
+	get:
+		return _is_climbing
+	set(value):
+		_is_climbing = value
+		# Add climb state change logic here if needed
+
 var climb_direction = 0 # -1 for left, 1 for right
 var forced_crouch = false # When we're forced to crouch due to low ceiling
 var climb_animation_timer = 0.0 # Timer for climb animation
@@ -88,8 +131,8 @@ var use_mirrored_idle = false # Whether to use mirrored idle after blinking
 var mirrored_idle_timer = 0.0 # Timer for how long we've been in mirrored idle
 var mirrored_idle_duration = 3.0 # How long to stay in mirrored idle
 
-# Jump state tracking
-var jump_phase = "none" # none, up, peak, down, land
+# Jump state tracking with enum
+var jump_phase: JumpPhase = JumpPhase.NONE
 var jump_land_timer = 0.0 # Timer for landing animation
 var jump_land_duration = 0.25 # How long landing animation lasts
 var last_velocity_y = 0.0 # Previous frame's Y velocity for jump phase detection
@@ -225,7 +268,7 @@ func handle_state_transitions() -> void:
 	if is_climbing and not should_be_climbing():
 		is_climbing = false
 		# Reset jump phase when transitioning away from climbing
-		jump_phase = "none"
+		jump_phase = JumpPhase.NONE
 		# Preserve any existing velocity for smooth transition
 
 func should_be_climbing() -> bool:
@@ -309,16 +352,16 @@ func update_animation() -> void:
 		new_animation = "climb"
 		# For climbing, we need to handle the alternating frames manually
 		handle_climb_animation()
-	elif not is_on_floor() or jump_phase != "none":
+	elif not is_on_floor() or jump_phase != JumpPhase.NONE:
 		# Jump animations have priority - use specific jump phase animation
 		match jump_phase:
-			"up":
+			JumpPhase.UP:
 				new_animation = "jump_up"
-			"peak":
+			JumpPhase.PEAK:
 				new_animation = "jump_peak"
-			"down":
+			JumpPhase.DOWN:
 				new_animation = "jump_down"
-			"land":
+			JumpPhase.LAND:
 				new_animation = "jump_land"
 			_:
 				new_animation = "jump_up" # Fallback to jump_up
@@ -402,29 +445,29 @@ func handle_jump_phases() -> void:
 	check_jump_interruption()
 	
 	# Handle jump phase transitions based on velocity
-	if not is_on_floor() and jump_phase != "land":
+	if not is_on_floor() and jump_phase != JumpPhase.LAND:
 		# Detect jump peak (velocity changes from negative to positive)
-		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == "up":
-			jump_phase = "peak"
+		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == JumpPhase.UP:
+			jump_phase = JumpPhase.PEAK
 		# Detect going down (velocity is positive)
-		elif velocity.y > 0 and jump_phase == "peak":
-			jump_phase = "down"
+		elif velocity.y > 0 and jump_phase == JumpPhase.PEAK:
+			jump_phase = JumpPhase.DOWN
 	
 	# Handle landing phase
-	if is_on_floor() and jump_phase != "none":
+	if is_on_floor() and jump_phase != JumpPhase.NONE:
 		if just_jumped_off_ladder:
 			# Skip jump_land animation for ladder jumps
-			jump_phase = "none"
+			jump_phase = JumpPhase.NONE
 			just_jumped_off_ladder = false
 		else:
-			jump_phase = "land"
+			jump_phase = JumpPhase.LAND
 			jump_land_timer = 0.0
 	
 	# Handle landing animation duration
-	if jump_phase == "land":
+	if jump_phase == JumpPhase.LAND:
 		jump_land_timer += get_physics_process_delta_time()
 		if jump_land_timer >= jump_land_duration:
-			jump_phase = "none"
+			jump_phase = JumpPhase.NONE
 	
 	# Store current velocity for next frame
 	last_velocity_y = velocity.y
@@ -432,37 +475,37 @@ func handle_jump_phases() -> void:
 func check_jump_interruption() -> void:
 	"""Check for conditions that should interrupt/reset the jump phase"""
 	# Reset jump phase if we're climbing (ladder takes priority)
-	if is_climbing and jump_phase != "none":
-		jump_phase = "none"
+	if is_climbing and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
 		return
 	
 	# Reset jump phase if we're forced to crouch due to ceiling
-	if forced_crouch and jump_phase != "none":
-		jump_phase = "none"
+	if forced_crouch and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
 		return
 	
 	# Reset jump phase if we're manually crouching and on floor
-	if is_crouching and is_on_floor() and jump_phase != "none":
-		jump_phase = "none"
+	if is_crouching and is_on_floor() and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
 		return
 	
 	# Check for ceiling collision during jump (velocity suddenly stops or reverses)
-	if jump_phase in ["up", "peak"] and velocity.y >= 0 and last_velocity_y < -50:
+	if jump_phase in [JumpPhase.UP, JumpPhase.PEAK] and velocity.y >= 0 and last_velocity_y < -50:
 		# Player hit ceiling during jump, try ledge push-around
 		handle_ledge_push_around()
 		# Transition to down phase
-		jump_phase = "down"
+		jump_phase = JumpPhase.DOWN
 		return
 	
 	# Reset jump phase if we've been in air too long without proper jump velocity
 	# This handles cases where jump gets stuck due to collision issues
-	if not is_on_floor() and jump_phase != "none":
+	if not is_on_floor() and jump_phase != JumpPhase.NONE:
 		# If we're not moving up and have been in jump phase for too long, reset
-		if velocity.y >= 0 and jump_phase in ["up", "peak"]:
+		if velocity.y >= 0 and jump_phase in [JumpPhase.UP, JumpPhase.PEAK]:
 			# Add a small timer to prevent premature reset
 			jump_stuck_timer += get_physics_process_delta_time()
 			if jump_stuck_timer > 0.5: # 0.5 seconds max
-				jump_phase = "down" # Transition to down phase
+				jump_phase = JumpPhase.DOWN # Transition to down phase
 				jump_stuck_timer = 0.0
 		else:
 			# Reset timer if we're moving properly
@@ -801,7 +844,7 @@ func handle_climbing(delta: float) -> void:
 		# Pressing left or right makes you fall off the ladder
 		is_climbing = false
 		# Reset jump phase when falling off ladder
-		jump_phase = "none"
+		jump_phase = JumpPhase.NONE
 		# Give a small horizontal push in the direction pressed
 		velocity.x = horizontal_input * 50.0 # Small horizontal velocity
 		# Let gravity take over
@@ -900,7 +943,7 @@ func try_consume_buffered_jump() -> void:
 
 func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
 	"""Centralized jump function for consistent behavior"""
-	jump_phase = "up"
+	jump_phase = JumpPhase.UP
 	velocity.y = jump_strength
 	# Clear any conflicting timers
 	jump_buffer_timer = 0.0

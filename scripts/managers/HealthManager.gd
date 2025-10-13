@@ -27,14 +27,11 @@ func take_damage(amount: int = 1):
 		return  # Already dead
 	
 	current_lives = max(0, current_lives - amount)
-	print("HealthManager: Player took damage, lives now: ", current_lives)
 	health_changed.emit(current_lives, MAX_LIVES)
 	
 	if current_lives <= 0:
-		print("HealthManager: Lives reached 0, triggering game over")
 		trigger_game_over()
 	else:
-		print("HealthManager: Player died, respawning")
 		player_died.emit()
 
 func take_damage_no_respawn(amount: int = 1):
@@ -43,12 +40,10 @@ func take_damage_no_respawn(amount: int = 1):
 		return
 	
 	current_lives = max(0, current_lives - amount)
-	print("HealthManager: Player took damage (no respawn), lives now: ", current_lives)
 	health_changed.emit(current_lives, MAX_LIVES)
 	
 	# Check if game over should be triggered
 	if current_lives <= 0:
-		print("HealthManager: Lives reached 0 (no respawn), triggering game over")
 		trigger_game_over()
 
 func heal(amount: int = 1):
@@ -69,7 +64,6 @@ func get_last_room_id() -> String:
 
 func trigger_game_over():
 	"""Trigger game over state"""
-	print("HealthManager: trigger_game_over() called, emitting game_over signal")
 	game_over.emit()
 
 func get_current_lives() -> int:

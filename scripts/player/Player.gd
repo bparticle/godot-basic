@@ -359,22 +359,18 @@ func handle_movement(delta: float) -> void:
 func update_animation() -> void:
 	# If dead, show appropriate animation using named clips
 	if is_dead:
-		print("update_animation: is_dead = ", is_dead, " has_shown_death_knockback = ", has_shown_death_knockback, " was_touching_death_tile = ", was_touching_death_tile)
 		if not has_shown_death_knockback:
 			# During final knockback, show falling sprite via jump_down animation
-			print("Showing jump_down animation")
 			if animated_sprite.animation != "jump_down":
 				animated_sprite.play("jump_down")
 		else:
 			# After knockback, show appropriate dead sprite based on how death occurred
 			if was_touching_death_tile:
 				# Show death tile sprite for death tile contact
-				print("Showing death tile sprite, was_touching_death_tile = ", was_touching_death_tile)
 				if animated_sprite.animation != "death_tile":
 					animated_sprite.play("death_tile")
 			else:
 				# Show regular dead sprite for other deaths
-				print("Showing regular dead sprite, was_touching_death_tile = ", was_touching_death_tile)
 				if animated_sprite.animation != "dead":
 					animated_sprite.play("dead")
 		return
@@ -670,14 +666,11 @@ func handle_death_tiles() -> void:
 		was_touching_death_tile = true
 		# Trigger white flash shader effect
 		trigger_white_flash()
-		# Debug: Print to confirm death tile detection
-		print("Death tile detected! Triggering white flash effect")
 
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - set dead state when lives reach 0"""
 	if current_lives <= 0 and not is_dead:
 		is_dead = true
-		print("Player died! is_dead = ", is_dead, " was_touching_death_tile = ", was_touching_death_tile)
 		# Don't stop movement immediately - let spike damage handle knockback first
 		# velocity = Vector2.ZERO
 
@@ -739,7 +732,7 @@ func trigger_white_flash():
 	flash_intensity = flash_intensity_max
 	damage_animation_timer = flash_duration # Flash for the configured duration
 
-func update_white_flash_shader(delta: float):
+func update_white_flash_shader(_delta: float):
 	"""Update white flash shader parameters"""
 	if damage_animation_timer > 0:
 		var progress = 1.0 - (damage_animation_timer / flash_duration) # Normalize to 0-1

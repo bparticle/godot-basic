@@ -1,31 +1,52 @@
 class_name GameColors
-extends RefCounted
+extends Node
 
 ## Game color palette - accessible in Godot editor library
-## These colors will appear in the editor's resource library
+## These colors will appear as editable swatches in the editor
 
 # Dark colors
-const DARK_BROWN = Color("#181010")        # Darkest brown
-const DARK_GRAY = Color("#3A393C")         # Dark gray
-const DARK_PURPLE = Color("#633566")       # Dark purple
-const MEDIUM_GRAY = Color("#4B4B4B")       # Medium gray
+@export_group("Dark Colors")
+@export var dark_brown: Color = Color("#181010")        # Darkest brown
+@export var dark_gray: Color = Color("#3A393C")         # Dark gray
+@export var dark_purple: Color = Color("#633566")       # Dark purple
+@export var medium_gray: Color = Color("#4B4B4B")       # Medium gray
 
 # Purple tones
-const LIGHT_PURPLE = Color("#AE8AB8")      # Light purple
-const PURPLE = Color("#84739C")            # Main purple
-const DEEP_PURPLE = Color("#614C7E")       # Deep purple
+@export_group("Purple Tones")
+@export var light_purple: Color = Color("#AE8AB8")      # Light purple
+@export var purple: Color = Color("#84739C")            # Main purple
+@export var deep_purple: Color = Color("#614C7E")       # Deep purple
 
 # Orange/Peach tones
-const ORANGE = Color("#F29155")            # Bright orange
-const PEACH = Color("#F7B58C")             # Peach
-const LIGHT_PEACH = Color("#FFD6BD")       # Light peach
-const CREAM = Color("#FFF2D7")            # Cream
+@export_group("Warm Tones")
+@export var orange: Color = Color("#F29155")            # Bright orange
+@export var peach: Color = Color("#F7B58C")             # Peach
+@export var light_peach: Color = Color("#FFD6BD")       # Light peach
+@export var cream: Color = Color("#FFF2D7")            # Cream
 
 # Light colors
-const OFF_WHITE = Color("#FFEFFF")         # Off white
-const LIGHT_GRAY = Color("#EFEFEF")        # Light gray
-const WHITE = Color("#FFFFFF")             # Pure white
-const GRAY = Color("#A9A9A9")              # Standard gray
+@export_group("Light Colors")
+@export var off_white: Color = Color("#FFEFFF")         # Off white
+@export var light_gray: Color = Color("#EFEFEF")        # Light gray
+@export var white: Color = Color("#FFFFFF")             # Pure white
+@export var gray: Color = Color("#A9A9A9")              # Standard gray
+
+# Legacy const access for backward compatibility
+const DARK_BROWN = Color("#181010")
+const DARK_GRAY = Color("#3A393C")
+const DARK_PURPLE = Color("#633566")
+const MEDIUM_GRAY = Color("#4B4B4B")
+const LIGHT_PURPLE = Color("#AE8AB8")
+const PURPLE = Color("#84739C")
+const DEEP_PURPLE = Color("#614C7E")
+const ORANGE = Color("#F29155")
+const PEACH = Color("#F7B58C")
+const LIGHT_PEACH = Color("#FFD6BD")
+const CREAM = Color("#FFF2D7")
+const OFF_WHITE = Color("#FFEFFF")
+const LIGHT_GRAY = Color("#EFEFEF")
+const WHITE = Color("#FFFFFF")
+const GRAY = Color("#A9A9A9")
 
 ## Get all colors as an array
 static func get_all_colors() -> Array[Color]:

@@ -64,7 +64,6 @@ enum JumpPhase {
 @export var collision_crouch_size: Vector2 = Vector2(4, 8)
 @export var collision_crouch_offset: Vector2 = Vector2(0, -4)
 
-
 @export var collision_climb_size: Vector2 = Vector2(4, 14)
 @export var collision_climb_offset: Vector2 = Vector2(0, -7)
 
@@ -72,6 +71,8 @@ enum JumpPhase {
 @onready var animated_sprite = $AnimatedSprite2D
 @onready var collision_shape = $CollisionShape2D
 @onready var room_manager = get_node("/root/RoomManager")
+@onready var state_machine = $StateMachine
+@onready var movement_component = $MovementComponent
 
 func _ready():
 	# Add player to a group for easy access
@@ -152,7 +153,7 @@ var jump_stuck_timer = 0.0 # Timer for detecting stuck jump phases
 # Simple jump system
 var just_jumped_off_ladder = false # Flag to prevent crouching after ladder jump
 
-# Platformer improvement timers
+# Platformer improvement timers (now handled by PlatformerImprovements component)
 var jump_buffer_timer: float = 0.0 # Timer for jump buffering
 var coyote_timer: float = 0.0 # Timer for coyote time
 var was_on_floor: bool = false # Track previous frame floor state
@@ -215,14 +216,8 @@ func _physics_process(delta: float) -> void:
 		update_animation()
 		return
 	
-	# Process all inputs first
-	process_inputs()
-	
 	# Handle platform-ladder pass-through
 	handle_platform_ladder_pass_through(delta)
-	
-	# Update platformer improvement timers
-	update_platformer_timers(delta)
 	
 	# Update damage animation timer
 	if damage_animation_timer > 0:
@@ -233,83 +228,32 @@ func _physics_process(delta: float) -> void:
 	# Update white flash shader
 	update_white_flash_shader(delta)
 	
-	# Handle state-specific logic
+	# Update platformer timers (coyote time, jump buffering)
+	update_platformer_timers(delta)
+	
+	# Apply gravity if not climbing
+	if not is_climbing:
+		apply_gravity(delta)
+	
+	# Handle basic movement (this was missing!)
+	handle_movement(delta)
+	
+	# Handle input processing
+	process_inputs()
+	
+	# Handle climbing if in climb state
 	if is_climbing:
 		handle_climbing(delta)
-	else:
-		# Reset climbing state tracking when not climbing
-		was_climbing = false
-		# Only apply gravity if not in platform-ladder pass-through
-		if not platform_ladder_pass_through:
-			apply_gravity(delta)
-		handle_movement(delta)
 	
 	# Try to consume buffered jump after movement
 	try_consume_buffered_jump()
 	
+	# Update animation and collision
 	update_animation()
 	update_collision_shape() # Update collision based on animation
 	move_and_slide()
-	# Boundary constraints removed - using physics collisions instead
 
-func process_inputs() -> void:
-	"""Centralized input processing - handles all input states and transitions"""
-	if _is_input_locked():
-		return
-	
-	# Check for platform-ladder pass-through first
-	check_platform_ladder_pass_through()
-	
-	# Check for ladder interaction
-	check_ladder_interaction()
-	
-	# Handle crouch input
-	handle_crouch_input()
-	
-	# Check ceiling clearance
-	check_ceiling_clearance()
-	
-	# Handle jump input with priority (now includes buffering)
-	handle_jump_input()
-	
-	# Handle state transitions
-	handle_state_transitions()
-
-func handle_jump_input() -> void:
-	"""Handle jump input - UP key while moving with buffering"""
-	# Check for UP key press and buffer it
-	if Input.is_action_just_pressed("ui_up"):
-		jump_buffer_timer = jump_buffer_time
-	
-	# Try immediate jump if conditions are met
-	if jump_buffer_timer > 0.0:
-		# Can jump when on floor and not crouching/climbing
-		if is_on_floor() and not is_crouching and not is_climbing:
-			do_jump()
-			jump_buffer_timer = 0.0
-		# Special case: jumping while climbing
-		elif is_climbing:
-			# Break out of climbing and jump
-			is_climbing = false
-			
-			# Reset crouching state when jumping off ladder
-			is_crouching = false
-			forced_crouch = false
-			just_jumped_off_ladder = true
-			
-			# Jump off ladder
-			do_jump()
-			jump_buffer_timer = 0.0
-
-func handle_state_transitions() -> void:
-	"""Handle transitions between different movement states"""
-	# If we were climbing and no longer should be, handle the transition
-	if is_climbing and not should_be_climbing():
-		is_climbing = false
-		# Reset jump phase when transitioning away from climbing
-		jump_phase = JumpPhase.NONE
-		# Preserve any existing velocity for smooth transition
-
+# State machine integration methods
 func should_be_climbing() -> bool:
 	"""Check if player should be in climbing state"""
 	# Check if we're near a ladder (regardless of input)
@@ -345,9 +289,12 @@ func apply_gravity(delta: float) -> void:
 		
 		velocity.y += gravity * gravity_scale * delta
 
-
 func handle_movement(delta: float) -> void:
-	var direction = 0.0 if _is_input_locked() else Input.get_axis("ui_left", "ui_right")
+	"""Handle basic horizontal movement"""
+	if _is_input_locked():
+		return
+		
+	var direction = Input.get_axis("ui_left", "ui_right")
 	var current_speed = crouch_speed if is_crouching else speed
 	
 	# Handle horizontal movement
@@ -355,6 +302,552 @@ func handle_movement(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, direction * current_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
+
+func process_inputs() -> void:
+	"""Centralized input processing - handles all input states and transitions"""
+	if _is_input_locked():
+		return
+	
+	# Check for platform-ladder pass-through first
+	check_platform_ladder_pass_through()
+	
+	# Check for ladder interaction
+	check_ladder_interaction()
+	
+	# Handle crouch input
+	handle_crouch_input()
+	
+	# Check ceiling clearance
+	check_ceiling_clearance()
+	
+	# Handle jump input with priority (now includes buffering)
+	handle_jump_input()
+	
+	# Handle state transitions
+	handle_state_transitions()
+
+func handle_jump_input() -> void:
+	"""Handle jump input - UP key while moving with buffering"""
+	# Check for UP key press and buffer it
+	if Input.is_action_just_pressed("ui_up"):
+		jump_buffer_timer = jump_buffer_time
+	
+	# Try immediate jump if conditions are met
+	if jump_buffer_timer > 0.0:
+		# Can jump when on floor or in coyote time, and not crouching/climbing
+		if (is_on_floor() or coyote_timer > 0.0) and not is_crouching and not is_climbing:
+			do_jump()
+			jump_buffer_timer = 0.0
+			coyote_timer = 0.0
+		# Special case: jumping while climbing
+		elif is_climbing:
+			# Break out of climbing and jump
+			is_climbing = false
+			
+			# Reset crouching state when jumping off ladder
+			is_crouching = false
+			forced_crouch = false
+			just_jumped_off_ladder = true
+			
+			# Jump off ladder
+			do_jump()
+			jump_buffer_timer = 0.0
+
+func handle_state_transitions() -> void:
+	"""Handle transitions between different movement states"""
+	# If we were climbing and no longer should be, handle the transition
+	if is_climbing and not should_be_climbing():
+		is_climbing = false
+		# Reset jump phase when transitioning away from climbing
+		jump_phase = JumpPhase.NONE
+		# Preserve any existing velocity for smooth transition
+
+func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
+	"""Centralized jump function for consistent behavior"""
+	jump_phase = JumpPhase.UP
+	velocity.y = jump_strength
+	# Clear any conflicting timers
+	jump_buffer_timer = 0.0
+	coyote_timer = 0.0
+
+func try_consume_buffered_jump() -> void:
+	"""Try to consume a buffered jump input after movement"""
+	if jump_buffer_timer > 0.0:
+		# Can jump if on floor or in coyote time, and not crouching/climbing
+		if (is_on_floor() or coyote_timer > 0.0) and not is_crouching and not is_climbing:
+			do_jump()
+			jump_buffer_timer = 0.0
+			coyote_timer = 0.0
+
+func update_platformer_timers(delta: float) -> void:
+	"""Update jump buffering and coyote time timers"""
+	# Update jump buffer timer
+	if jump_buffer_timer > 0.0:
+		jump_buffer_timer -= delta
+	
+	# Update coyote timer
+	if is_on_floor():
+		coyote_timer = coyote_time
+	else:
+		coyote_timer = max(0.0, coyote_timer - delta)
+	
+	# Reset jump phase when coyote time expires and we're not actually jumping
+	if coyote_timer <= 0.0 and jump_phase != JumpPhase.NONE and not is_on_floor() and velocity.y >= 0:
+		if jump_phase == JumpPhase.UP or jump_phase == JumpPhase.PEAK:
+			jump_phase = JumpPhase.NONE
+	
+	# Track floor state for next frame
+	was_on_floor = is_on_floor()
+
+func handle_crouch_input() -> void:
+	if _is_input_locked():
+		return
+	
+	# Don't allow crouching immediately after jumping off ladder
+	if just_jumped_off_ladder:
+		# Reset the flag after a short delay
+		just_jumped_off_ladder = false
+		is_crouching = false
+		forced_crouch = false
+		return
+	
+	# Check if down is pressed (alone or with left/right)
+	var down_pressed = Input.is_action_pressed("ui_down")
+	
+	# If we're climbing and near a ladder, don't allow crouching to override climbing
+	if is_climbing and should_be_climbing():
+		# While climbing, don't set crouching state
+		pass
+	elif not forced_crouch:
+		# If we're not forced to crouch, allow normal crouch input
+		is_crouching = down_pressed
+	else:
+		# If we're forced to crouch, only allow standing if there's enough ceiling clearance
+		if not down_pressed and check_ceiling_clearance_for_full_height():
+			is_crouching = false
+			forced_crouch = false
+		else:
+			is_crouching = true
+	
+	# If we were climbing, stop climbing when crouching (but not when near a ladder and trying to climb)
+	if is_crouching and is_climbing and not should_be_climbing():
+		is_climbing = false
+
+func check_ceiling_clearance() -> void:
+	# Only check ceiling clearance if we're not already crouching due to input
+	var down_pressed = Input.is_action_pressed("ui_down")
+	
+	# If we're not forced to crouch and not manually crouching, check for low ceiling
+	if not forced_crouch and not down_pressed:
+		# Check if there's enough space for full height
+		if not check_ceiling_clearance_for_full_height():
+			forced_crouch = true
+			is_crouching = true
+	elif forced_crouch and not down_pressed:
+		# Check if we can now stand up (only if not manually crouching)
+		if check_ceiling_clearance_for_full_height():
+			forced_crouch = false
+			is_crouching = false
+
+func check_ceiling_clearance_for_full_height() -> bool:
+	# Create a temporary collision shape to test full height
+	var space_state = get_world_2d().direct_space_state
+	var query = PhysicsShapeQueryParameters2D.new()
+	
+	# Create a test shape at the position where the full collision would be
+	var test_shape = RectangleShape2D.new()
+	test_shape.size = collision_idle_size
+	
+	# Position the test shape at where the idle collision would be
+	var test_transform = Transform2D(0, global_position + collision_idle_offset)
+	
+	query.shape = test_shape
+	query.transform = test_transform
+	query.collision_mask = 1 # Same collision mask as player
+	query.exclude = [self.get_rid()] # Exclude the player's own collision
+	
+	# Check if there's any collision
+	var result = space_state.intersect_shape(query, 1)
+	
+	# If no collision found, there's enough clearance
+	return result.is_empty()
+
+func check_ladder_interaction() -> void:
+	if _is_input_locked():
+		return
+	
+	# Use a more robust approach: check for ladder tiles in a radius around the player
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	if not tilemap:
+		return
+	
+	# Check for ladder tiles and find the center position
+	var ladder_found = false
+	var ladder_tile_positions: Array[Vector2i] = []
+	var check_radius = 1 # Check 8 pixels in each direction
+	
+	# Create a grid of positions to check around the player
+	for x in range(-check_radius, check_radius + 1, 4): # Check every 4 pixels
+		for y in range(-check_radius, check_radius + 1, 4):
+			var check_pos = global_position + Vector2(x, y)
+			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+			
+			# Check if this is any ladder tile variant
+			if tile_atlas_coords in LADDER_TILES:
+				ladder_found = true
+				ladder_tile_positions.append(tile_pos)
+	
+	# Calculate ladder center if found
+	if ladder_found and ladder_tile_positions.size() > 0:
+		# Find the center tile position
+		var total_x = 0
+		for tile_pos in ladder_tile_positions:
+			total_x += tile_pos.x
+		var center_tile_x = float(total_x) / float(ladder_tile_positions.size())
+		
+		# Convert tile position to world position (center of the tile)
+		var tile_size = tilemap.tile_set.tile_size
+		ladder_center_x = center_tile_x * tile_size.x + (tile_size.x / 2.0)
+	
+	# Handle ladder interaction
+	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
+		# Special case: if we're standing ON TOP of platform-ladder and pressing down, don't start climbing
+		# Let the pass-through mechanism handle it instead
+		var should_prevent_climbing = false
+		if Input.is_action_pressed("ui_down"):
+			# Check if we're standing directly on top of a platform-ladder tile
+			var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
+			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
+		
+		# Start climbing unless we're standing on platform-ladder with down input
+		if not should_prevent_climbing:
+			is_climbing = true
+			is_crouching = false # Can't crouch while climbing
+	elif not ladder_found:
+		# No ladder nearby, stop climbing
+		if is_climbing:
+			is_climbing = false
+
+func check_platform_ladder_pass_through() -> void:
+	"""Check if player is standing on platform-ladder and wants to pass through"""
+	if _is_input_locked():
+		return
+	
+	# Only check if we're on floor and not already climbing
+	if not is_on_floor() or is_climbing:
+		platform_ladder_pass_through = false
+		platform_ladder_pass_timer = 0.0
+		return
+	
+	# Check if we're standing on a platform-ladder tile
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	if not tilemap:
+		return
+	
+	# Check tile directly below player's feet
+	var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
+	var tile_pos = tilemap.local_to_map(check_pos)
+	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
+	
+	# Check if we're standing on platform-ladder and pressing down
+	if tile_atlas_coords == PLATFORM_LADDER_TILE and Input.is_action_pressed("ui_down"):
+		if not platform_ladder_pass_through:
+			platform_ladder_pass_through = true
+			platform_ladder_pass_timer = 0.0
+	else:
+		# Reset pass-through if not on platform-ladder or not pressing down
+		if platform_ladder_pass_through:
+			platform_ladder_pass_through = false
+			platform_ladder_pass_timer = 0.0
+
+func handle_climbing(delta: float) -> void:
+	"""Handle climbing movement with smooth input processing and ladder centering"""
+	# Stop gravity while climbing
+	velocity.y = 0
+	
+	# Check if we just started climbing (immediate centering)
+	if is_climbing and not was_climbing:
+		# Just started climbing - immediately center on ladder
+		if ladder_center_x != 0.0:
+			global_position.x = ladder_center_x
+			velocity.x = 0 # Stop any horizontal velocity
+	
+	# Handle vertical movement on ladder
+	var vertical_input = 0.0
+	if Input.is_action_pressed("ui_up"):
+		vertical_input = -1.0
+	elif Input.is_action_pressed("ui_down"):
+		vertical_input = 1.0
+	
+	velocity.y = vertical_input * climb_speed
+	
+	# Handle horizontal movement while climbing
+	var horizontal_input = Input.get_axis("ui_left", "ui_right")
+	if abs(horizontal_input) > 0:
+		# Pressing left or right makes you fall off the ladder
+		is_climbing = false
+		# Reset jump phase when falling off ladder
+		jump_phase = JumpPhase.NONE
+		# Give a small horizontal push in the direction pressed
+		velocity.x = horizontal_input * 50.0 # Small horizontal velocity
+		# Let gravity take over
+		velocity.y = 0
+	else:
+		# Apply gentle ladder centering when no horizontal input (maintains center during climb)
+		apply_ladder_centering(delta)
+	
+	# Update climbing state for next frame
+	was_climbing = is_climbing
+
+func apply_ladder_centering(delta: float) -> void:
+	"""Apply gentle centering force to maintain ladder center during climb"""
+	if ladder_center_x == 0.0:
+		return # No ladder center calculated yet
+	
+	# Calculate distance from ladder center
+	var distance_from_center = ladder_center_x - global_position.x
+	
+	# Only apply centering if we're not already close to center (within 1 pixel for tighter control)
+	if abs(distance_from_center) > 1.0:
+		# Apply gentler centering force to maintain position during climb
+		var centering_force = distance_from_center * (ladder_centering_strength * 0.5) * delta
+		
+		# Apply the centering force to velocity
+		velocity.x = move_toward(velocity.x, centering_force, (ladder_centering_strength * 0.5) * delta)
+	else:
+		# If we're close to center, just decelerate smoothly
+		velocity.x = move_toward(velocity.x, 0, friction * delta)
+
+func handle_climb_animation() -> void:
+	# Handle dynamic climbing animation based on vertical movement only
+	if not is_climbing:
+		climb_animation_timer = 0.0
+		return
+	
+	# Only animate when moving vertically (up or down)
+	if abs(velocity.y) > 0:
+		climb_animation_timer += get_physics_process_delta_time()
+		
+		# Alternate between normal and mirrored sprite every 0.2 seconds
+		var frame_duration = 0.2
+		var should_mirror = int(climb_animation_timer / frame_duration) % 2 == 1
+		
+		# Set mirroring based on animation timing
+		animated_sprite.flip_h = should_mirror
+	else:
+		# Not moving vertically, reset to normal orientation
+		animated_sprite.flip_h = false
+		climb_animation_timer = 0.0
+
+func handle_jump_phases() -> void:
+	"""Handle jump phase transitions for animation"""
+	# Check for jump interruption conditions first
+	check_jump_interruption()
+	
+	# Handle jump phase transitions based on velocity
+	if not is_on_floor() and jump_phase != JumpPhase.LAND:
+		# Detect jump peak (velocity changes from negative to positive)
+		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == JumpPhase.UP:
+			jump_phase = JumpPhase.PEAK
+		# Detect going down (velocity is positive)
+		elif velocity.y > 0 and jump_phase == JumpPhase.PEAK:
+			jump_phase = JumpPhase.DOWN
+	
+	# Handle landing phase
+	if is_on_floor() and jump_phase != JumpPhase.NONE:
+		if just_jumped_off_ladder:
+			# Skip jump_land animation for ladder jumps
+			jump_phase = JumpPhase.NONE
+			just_jumped_off_ladder = false
+		else:
+			jump_phase = JumpPhase.LAND
+			jump_land_timer = 0.0
+	
+	# Handle landing animation duration
+	if jump_phase == JumpPhase.LAND:
+		jump_land_timer += get_physics_process_delta_time()
+		if jump_land_timer >= jump_land_duration:
+			jump_phase = JumpPhase.NONE
+	
+	# Store current velocity for next frame
+	last_velocity_y = velocity.y
+
+func check_jump_interruption() -> void:
+	"""Check for conditions that should interrupt/reset the jump phase"""
+	# Reset jump phase if we're climbing (ladder takes priority)
+	if is_climbing and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
+		return
+	
+	# Reset jump phase if we're forced to crouch due to ceiling
+	if forced_crouch and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
+		return
+	
+	# Reset jump phase if we're manually crouching and on floor
+	if is_crouching and is_on_floor() and jump_phase != JumpPhase.NONE:
+		jump_phase = JumpPhase.NONE
+		return
+	
+	# Check for ceiling collision during jump (velocity suddenly stops or reverses)
+	if jump_phase in [JumpPhase.UP, JumpPhase.PEAK] and velocity.y >= 0 and last_velocity_y < -50:
+		# Player hit ceiling during jump, try ledge push-around
+		handle_ledge_push_around()
+		# Transition to down phase
+		jump_phase = JumpPhase.DOWN
+		return
+	
+	# Reset jump phase if we've been in air too long without proper jump velocity
+	# This handles cases where jump gets stuck due to collision issues
+	if not is_on_floor() and jump_phase != JumpPhase.NONE:
+		# If we're not moving up and have been in jump phase for too long, reset
+		if velocity.y >= 0 and jump_phase in [JumpPhase.UP, JumpPhase.PEAK]:
+			# Add a small timer to prevent premature reset
+			jump_stuck_timer += get_physics_process_delta_time()
+			if jump_stuck_timer > 0.5: # 0.5 seconds max
+				jump_phase = JumpPhase.DOWN # Transition to down phase
+				jump_stuck_timer = 0.0
+		else:
+			# Reset timer if we're moving properly
+			jump_stuck_timer = 0.0
+	else:
+		# Reset timer when on floor
+		jump_stuck_timer = 0.0
+
+func handle_ledge_push_around() -> void:
+	"""Try to push player around ledge when hitting ceiling"""
+	var space_state = get_world_2d().direct_space_state
+	
+	# Check if there's space to the left and right
+	var left_probe_pos = global_position + Vector2(-ledge_probe_offset, -collision_jump_size.y)
+	var right_probe_pos = global_position + Vector2(ledge_probe_offset, -collision_jump_size.y)
+	
+	# Use the correct Godot 4 API for intersect_point
+	var left_free = space_state.intersect_point(left_probe_pos).is_empty()
+	var right_free = space_state.intersect_point(right_probe_pos).is_empty()
+	
+	# Push in the direction that has space
+	if right_free and not left_free:
+		global_position.x += ledge_push_amount
+	elif left_free and not right_free:
+		global_position.x -= ledge_push_amount
+
+# All the existing methods for damage, death, animation, etc. are preserved below
+# ... (continuing with all existing functionality)
+
+func handle_spike_damage() -> void:
+	# Respect damage immunity window (but allow visual effects when dead)
+	if Time.get_ticks_msec() < damage_immunity_until_ms and not is_dead:
+		return
+	
+	# If dead and already showed final knockback, stop checking spikes entirely
+	if is_dead and has_shown_death_knockback:
+		return
+	
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
+	if not tilemap:
+		return
+	
+	# Sample a few points around the player's body to detect spike tiles
+	var sample_points: Array[Vector2] = []
+	var half_width = 3.0
+	var half_height = 6.0
+	# Feet row
+	sample_points.append(global_position + Vector2(0, 0))
+	sample_points.append(global_position + Vector2(-half_width, 0))
+	sample_points.append(global_position + Vector2(half_width, 0))
+	# Mid row
+	sample_points.append(global_position + Vector2(0, -half_height))
+	sample_points.append(global_position + Vector2(-half_width, -half_height))
+	sample_points.append(global_position + Vector2(half_width, -half_height))
+
+	var spike_hit = false
+	for p in sample_points:
+		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
+		if atlas == SPIKE_ATLAS_COORD:
+			spike_hit = true
+			break
+
+	if not spike_hit:
+		return
+
+	# If dead, only allow one spike hit to show the final knockback
+	if is_dead:
+		if has_shown_death_knockback:
+			return
+		has_shown_death_knockback = true
+
+	# Only apply damage if not dead
+	if not is_dead:
+		# Apply damage without respawn
+		if health_manager:
+			if health_manager.has_method("take_damage_no_respawn"):
+				health_manager.take_damage_no_respawn(1)
+			else:
+				health_manager.take_damage(1)
+
+		# Start short immunity and input lock to prevent life-drain in a single cluster
+		damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
+		input_locked_until_ms = max(input_locked_until_ms, Time.get_ticks_msec() + int(damage_immunity_duration_ms * 0.7))
+
+	# Compute knockback: push opposite to current horizontal movement, and knock up
+	var knock_dir = -1 if velocity.x > 0 else 1
+	if abs(velocity.x) < 1.0:
+		# If essentially stationary, use last facing as hint
+		knock_dir = 1 if animated_sprite.flip_h else -1
+	
+	velocity.x = knock_dir * spike_knockback_speed
+	velocity.y = spike_knockup_velocity
+
+func handle_death_tiles() -> void:
+	"""Check if player is touching death tiles and set animation flag"""
+	# If dead and already showed final knockback, stop checking death tiles entirely
+	if is_dead and has_shown_death_knockback:
+		return
+	
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
+	if not tilemap:
+		return
+	
+	# Sample a few points around the player's body to detect death tiles
+	var sample_points: Array[Vector2] = []
+	var half_width = 3.0
+	var half_height = 6.0
+	# Feet row
+	sample_points.append(global_position + Vector2(0, 0))
+	sample_points.append(global_position + Vector2(-half_width, 0))
+	sample_points.append(global_position + Vector2(half_width, 0))
+	# Mid row
+	sample_points.append(global_position + Vector2(0, -half_height))
+	sample_points.append(global_position + Vector2(-half_width, -half_height))
+	sample_points.append(global_position + Vector2(half_width, -half_height))
+
+	var death_tile_detected = false
+	for p in sample_points:
+		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
+		if atlas in DEATH_TILES:
+			death_tile_detected = true
+			break
+
+	if death_tile_detected:
+		# Set death tile hit flag for animation - no damage applied
+		# The existing death zones will handle the actual damage
+		death_tile_hit = true
+		was_touching_death_tile = true
+		# Trigger white flash shader effect
+		trigger_white_flash()
+
+func _on_health_changed(current_lives: int, _max_lives: int):
+	"""Handle health changes - set dead state when lives reach 0"""
+	if current_lives <= 0 and not is_dead:
+		is_dead = true
+		# Don't stop movement immediately - let spike damage handle knockback first
+		# velocity = Vector2.ZERO
 
 func update_animation() -> void:
 	# If dead, show appropriate animation using named clips
@@ -374,8 +867,6 @@ func update_animation() -> void:
 				if animated_sprite.animation != "dead":
 					animated_sprite.play("dead")
 		return
-	
-	# Note: Damage animation is now handled by white flash shader
 	
 	# Handle sprite flipping
 	if velocity.x < 0:
@@ -486,215 +977,6 @@ func handle_blinking() -> void:
 			blink_timer = 0.0
 			use_mirrored_idle = true # Switch to mirrored idle after blinking
 
-func handle_jump_phases() -> void:
-	"""Handle jump phase transitions for animation"""
-	# Check for jump interruption conditions first
-	check_jump_interruption()
-	
-	# Handle jump phase transitions based on velocity
-	if not is_on_floor() and jump_phase != JumpPhase.LAND:
-		# Detect jump peak (velocity changes from negative to positive)
-		if last_velocity_y < 0 and velocity.y >= 0 and jump_phase == JumpPhase.UP:
-			jump_phase = JumpPhase.PEAK
-		# Detect going down (velocity is positive)
-		elif velocity.y > 0 and jump_phase == JumpPhase.PEAK:
-			jump_phase = JumpPhase.DOWN
-	
-	# Handle landing phase
-	if is_on_floor() and jump_phase != JumpPhase.NONE:
-		if just_jumped_off_ladder:
-			# Skip jump_land animation for ladder jumps
-			jump_phase = JumpPhase.NONE
-			just_jumped_off_ladder = false
-		else:
-			jump_phase = JumpPhase.LAND
-			jump_land_timer = 0.0
-	
-	# Handle landing animation duration
-	if jump_phase == JumpPhase.LAND:
-		jump_land_timer += get_physics_process_delta_time()
-		if jump_land_timer >= jump_land_duration:
-			jump_phase = JumpPhase.NONE
-	
-	# Store current velocity for next frame
-	last_velocity_y = velocity.y
-
-func check_jump_interruption() -> void:
-	"""Check for conditions that should interrupt/reset the jump phase"""
-	# Reset jump phase if we're climbing (ladder takes priority)
-	if is_climbing and jump_phase != JumpPhase.NONE:
-		jump_phase = JumpPhase.NONE
-		return
-	
-	# Reset jump phase if we're forced to crouch due to ceiling
-	if forced_crouch and jump_phase != JumpPhase.NONE:
-		jump_phase = JumpPhase.NONE
-		return
-	
-	# Reset jump phase if we're manually crouching and on floor
-	if is_crouching and is_on_floor() and jump_phase != JumpPhase.NONE:
-		jump_phase = JumpPhase.NONE
-		return
-	
-	# Check for ceiling collision during jump (velocity suddenly stops or reverses)
-	if jump_phase in [JumpPhase.UP, JumpPhase.PEAK] and velocity.y >= 0 and last_velocity_y < -50:
-		# Player hit ceiling during jump, try ledge push-around
-		handle_ledge_push_around()
-		# Transition to down phase
-		jump_phase = JumpPhase.DOWN
-		return
-	
-	# Reset jump phase if we've been in air too long without proper jump velocity
-	# This handles cases where jump gets stuck due to collision issues
-	if not is_on_floor() and jump_phase != JumpPhase.NONE:
-		# If we're not moving up and have been in jump phase for too long, reset
-		if velocity.y >= 0 and jump_phase in [JumpPhase.UP, JumpPhase.PEAK]:
-			# Add a small timer to prevent premature reset
-			jump_stuck_timer += get_physics_process_delta_time()
-			if jump_stuck_timer > 0.5: # 0.5 seconds max
-				jump_phase = JumpPhase.DOWN # Transition to down phase
-				jump_stuck_timer = 0.0
-		else:
-			# Reset timer if we're moving properly
-			jump_stuck_timer = 0.0
-	else:
-		# Reset timer when on floor
-		jump_stuck_timer = 0.0
-
-func handle_spike_damage() -> void:
-	# Respect damage immunity window (but allow visual effects when dead)
-	if Time.get_ticks_msec() < damage_immunity_until_ms and not is_dead:
-		return
-	
-	# If dead and already showed final knockback, stop checking spikes entirely
-	if is_dead and has_shown_death_knockback:
-		return
-	
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
-	if not tilemap:
-		return
-	
-	# Sample a few points around the player's body to detect spike tiles
-	var sample_points: Array[Vector2] = []
-	var half_width = 3.0
-	var half_height = 6.0
-	# Feet row
-	sample_points.append(global_position + Vector2(0, 0))
-	sample_points.append(global_position + Vector2(-half_width, 0))
-	sample_points.append(global_position + Vector2(half_width, 0))
-	# Mid row
-	sample_points.append(global_position + Vector2(0, -half_height))
-	sample_points.append(global_position + Vector2(-half_width, -half_height))
-	sample_points.append(global_position + Vector2(half_width, -half_height))
-
-	var spike_hit = false
-	for p in sample_points:
-		var map_pos: Vector2i = tilemap.local_to_map(p)
-		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
-		if atlas == SPIKE_ATLAS_COORD:
-			spike_hit = true
-			break
-
-	if not spike_hit:
-		return
-
-	# If dead, only allow one spike hit to show the final knockback
-	if is_dead:
-		if has_shown_death_knockback:
-			return
-		has_shown_death_knockback = true
-
-	# Only apply damage if not dead
-	if not is_dead:
-		# Apply damage without respawn
-		if health_manager:
-			if health_manager.has_method("take_damage_no_respawn"):
-				health_manager.take_damage_no_respawn(1)
-			else:
-				health_manager.take_damage(1)
-
-		# Start short immunity and input lock to prevent life-drain in a single cluster
-		damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
-		input_locked_until_ms = max(input_locked_until_ms, Time.get_ticks_msec() + int(damage_immunity_duration_ms * 0.7))
-
-	# Compute knockback: push opposite to current horizontal movement, and knock up
-	var knock_dir = -1 if velocity.x > 0 else 1
-	if abs(velocity.x) < 1.0:
-		# If essentially stationary, use last facing as hint
-		knock_dir = 1 if animated_sprite.flip_h else -1
-	
-	velocity.x = knock_dir * spike_knockback_speed
-	velocity.y = spike_knockup_velocity
-	
-	# Note: Sprite is now handled by update_animation() based on is_dead and has_shown_death_knockback
-
-func handle_death_tiles() -> void:
-	"""Check if player is touching death tiles and set animation flag"""
-	# If dead and already showed final knockback, stop checking death tiles entirely
-	if is_dead and has_shown_death_knockback:
-		return
-	
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
-	if not tilemap:
-		return
-	
-	# Sample a few points around the player's body to detect death tiles
-	var sample_points: Array[Vector2] = []
-	var half_width = 3.0
-	var half_height = 6.0
-	# Feet row
-	sample_points.append(global_position + Vector2(0, 0))
-	sample_points.append(global_position + Vector2(-half_width, 0))
-	sample_points.append(global_position + Vector2(half_width, 0))
-	# Mid row
-	sample_points.append(global_position + Vector2(0, -half_height))
-	sample_points.append(global_position + Vector2(-half_width, -half_height))
-	sample_points.append(global_position + Vector2(half_width, -half_height))
-
-	var death_tile_detected = false
-	for p in sample_points:
-		var map_pos: Vector2i = tilemap.local_to_map(p)
-		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
-		if atlas in DEATH_TILES:
-			death_tile_detected = true
-			break
-
-	if death_tile_detected:
-		# Set death tile hit flag for animation - no damage applied
-		# The existing death zones will handle the actual damage
-		death_tile_hit = true
-		was_touching_death_tile = true
-		# Trigger white flash shader effect
-		trigger_white_flash()
-
-func _on_health_changed(current_lives: int, _max_lives: int):
-	"""Handle health changes - set dead state when lives reach 0"""
-	if current_lives <= 0 and not is_dead:
-		is_dead = true
-		# Don't stop movement immediately - let spike damage handle knockback first
-		# velocity = Vector2.ZERO
-
-func handle_climb_animation() -> void:
-	# Handle dynamic climbing animation based on vertical movement only
-	if not is_climbing:
-		climb_animation_timer = 0.0
-		return
-	
-	# Only animate when moving vertically (up or down)
-	if abs(velocity.y) > 0:
-		climb_animation_timer += get_physics_process_delta_time()
-		
-		# Alternate between normal and mirrored sprite every 0.2 seconds
-		var frame_duration = 0.2
-		var should_mirror = int(climb_animation_timer / frame_duration) % 2 == 1
-		
-		# Set mirroring based on animation timing
-		animated_sprite.flip_h = should_mirror
-	else:
-		# Not moving vertically, reset to normal orientation
-		animated_sprite.flip_h = false
-		climb_animation_timer = 0.0
-
 func update_collision_shape() -> void:
 	# Get the shape resource
 	var shape = collision_shape.shape as RectangleShape2D
@@ -779,40 +1061,6 @@ func _draw():
 			var direction = 1 if velocity.x > 0 else -1
 			draw_line(Vector2.ZERO, Vector2(direction * 20, 0), Color.GREEN, 3.0)
 
-func handle_crouch_input() -> void:
-	if _is_input_locked():
-		return
-	
-	# Don't allow crouching immediately after jumping off ladder
-	if just_jumped_off_ladder:
-		# Reset the flag after a short delay
-		just_jumped_off_ladder = false
-		is_crouching = false
-		forced_crouch = false
-		return
-	
-	# Check if down is pressed (alone or with left/right)
-	var down_pressed = Input.is_action_pressed("ui_down")
-	
-	# If we're climbing and near a ladder, don't allow crouching to override climbing
-	if is_climbing and should_be_climbing():
-		# While climbing, don't set crouching state
-		pass
-	elif not forced_crouch:
-		# If we're not forced to crouch, allow normal crouch input
-		is_crouching = down_pressed
-	else:
-		# If we're forced to crouch, only allow standing if there's enough ceiling clearance
-		if not down_pressed and check_ceiling_clearance_for_full_height():
-			is_crouching = false
-			forced_crouch = false
-		else:
-			is_crouching = true
-	
-	# If we were climbing, stop climbing when crouching (but not when near a ladder and trying to climb)
-	if is_crouching and is_climbing and not should_be_climbing():
-		is_climbing = false
-
 func handle_platform_ladder_pass_through(delta: float) -> void:
 	"""Handle the platform-ladder pass-through mechanism"""
 	if not platform_ladder_pass_through:
@@ -832,259 +1080,3 @@ func handle_platform_ladder_pass_through(delta: float) -> void:
 		# Pass-through duration expired, reset
 		platform_ladder_pass_through = false
 		platform_ladder_pass_timer = 0.0
-
-func check_platform_ladder_pass_through() -> void:
-	"""Check if player is standing on platform-ladder and wants to pass through"""
-	if _is_input_locked():
-		return
-	
-	# Only check if we're on floor and not already climbing
-	if not is_on_floor() or is_climbing:
-		platform_ladder_pass_through = false
-		platform_ladder_pass_timer = 0.0
-		return
-	
-	# Check if we're standing on a platform-ladder tile
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
-	if not tilemap:
-		return
-	
-	# Check tile directly below player's feet
-	var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
-	var tile_pos = tilemap.local_to_map(check_pos)
-	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
-	
-	# Check if we're standing on platform-ladder and pressing down
-	if tile_atlas_coords == PLATFORM_LADDER_TILE and Input.is_action_pressed("ui_down"):
-		if not platform_ladder_pass_through:
-			platform_ladder_pass_through = true
-			platform_ladder_pass_timer = 0.0
-	else:
-		# Reset pass-through if not on platform-ladder or not pressing down
-		if platform_ladder_pass_through:
-			platform_ladder_pass_through = false
-			platform_ladder_pass_timer = 0.0
-
-func check_ladder_interaction() -> void:
-	if _is_input_locked():
-		return
-	
-	# Use a more robust approach: check for ladder tiles in a radius around the player
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
-	if not tilemap:
-		return
-	
-	# Check for ladder tiles and find the center position
-	var ladder_found = false
-	var ladder_tile_positions: Array[Vector2i] = []
-	var check_radius = 1 # Check 8 pixels in each direction
-	
-	# Create a grid of positions to check around the player
-	for x in range(-check_radius, check_radius + 1, 4): # Check every 4 pixels
-		for y in range(-check_radius, check_radius + 1, 4):
-			var check_pos = global_position + Vector2(x, y)
-			var tile_pos = tilemap.local_to_map(check_pos)
-			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
-			
-			# Check if this is any ladder tile variant
-			if tile_atlas_coords in LADDER_TILES:
-				ladder_found = true
-				ladder_tile_positions.append(tile_pos)
-	
-	# Calculate ladder center if found
-	if ladder_found and ladder_tile_positions.size() > 0:
-		# Find the center tile position
-		var total_x = 0
-		for tile_pos in ladder_tile_positions:
-			total_x += tile_pos.x
-		var center_tile_x = float(total_x) / float(ladder_tile_positions.size())
-		
-		# Convert tile position to world position (center of the tile)
-		var tile_size = tilemap.tile_set.tile_size
-		ladder_center_x = center_tile_x * tile_size.x + (tile_size.x / 2.0)
-		
-		# Debug: Show which ladder tile types were found
-		var ladder_types = []
-		for tile_pos in ladder_tile_positions:
-			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
-			ladder_types.append(str(tile_atlas_coords))
-		
-	
-	# Handle ladder interaction
-	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
-		# Special case: if we're standing ON TOP of platform-ladder and pressing down, don't start climbing
-		# Let the pass-through mechanism handle it instead
-		var should_prevent_climbing = false
-		if Input.is_action_pressed("ui_down"):
-			# Check if we're standing directly on top of a platform-ladder tile
-			var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
-			var tile_pos = tilemap.local_to_map(check_pos)
-			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
-			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
-		
-		# Start climbing unless we're standing on platform-ladder with down input
-		if not should_prevent_climbing:
-			is_climbing = true
-			is_crouching = false # Can't crouch while climbing
-	elif not ladder_found:
-		# No ladder nearby, stop climbing
-		if is_climbing:
-			is_climbing = false
-
-func handle_climbing(delta: float) -> void:
-	"""Handle climbing movement with smooth input processing and ladder centering"""
-	# Stop gravity while climbing
-	velocity.y = 0
-	
-	# Check if we just started climbing (immediate centering)
-	if is_climbing and not was_climbing:
-		# Just started climbing - immediately center on ladder
-		if ladder_center_x != 0.0:
-			global_position.x = ladder_center_x
-			velocity.x = 0 # Stop any horizontal velocity
-	
-	# Handle vertical movement on ladder
-	var vertical_input = 0.0
-	if Input.is_action_pressed("ui_up"):
-		vertical_input = -1.0
-	elif Input.is_action_pressed("ui_down"):
-		vertical_input = 1.0
-	
-	velocity.y = vertical_input * climb_speed
-	
-	# Handle horizontal movement while climbing
-	var horizontal_input = Input.get_axis("ui_left", "ui_right")
-	if abs(horizontal_input) > 0:
-		# Pressing left or right makes you fall off the ladder
-		is_climbing = false
-		# Reset jump phase when falling off ladder
-		jump_phase = JumpPhase.NONE
-		# Give a small horizontal push in the direction pressed
-		velocity.x = horizontal_input * 50.0 # Small horizontal velocity
-		# Let gravity take over
-		velocity.y = 0
-	else:
-		# Apply gentle ladder centering when no horizontal input (maintains center during climb)
-		apply_ladder_centering(delta)
-	
-	# Update climbing state for next frame
-	was_climbing = is_climbing
-
-func apply_ladder_centering(delta: float) -> void:
-	"""Apply gentle centering force to maintain ladder center during climb"""
-	if ladder_center_x == 0.0:
-		return # No ladder center calculated yet
-	
-	# Calculate distance from ladder center
-	var distance_from_center = ladder_center_x - global_position.x
-	
-	# Only apply centering if we're not already close to center (within 1 pixel for tighter control)
-	if abs(distance_from_center) > 1.0:
-		# Apply gentler centering force to maintain position during climb
-		var centering_force = distance_from_center * (ladder_centering_strength * 0.5) * delta
-		
-		# Apply the centering force to velocity
-		velocity.x = move_toward(velocity.x, centering_force, (ladder_centering_strength * 0.5) * delta)
-	else:
-		# If we're close to center, just decelerate smoothly
-		velocity.x = move_toward(velocity.x, 0, friction * delta)
-
-func check_ceiling_clearance() -> void:
-	# Only check ceiling clearance if we're not already crouching due to input
-	var down_pressed = Input.is_action_pressed("ui_down")
-	
-	# If we're not forced to crouch and not manually crouching, check for low ceiling
-	if not forced_crouch and not down_pressed:
-		# Check if there's enough space for full height
-		if not check_ceiling_clearance_for_full_height():
-			forced_crouch = true
-			is_crouching = true
-	elif forced_crouch and not down_pressed:
-		# Check if we can now stand up (only if not manually crouching)
-		if check_ceiling_clearance_for_full_height():
-			forced_crouch = false
-			is_crouching = false
-
-func check_ceiling_clearance_for_full_height() -> bool:
-	# Create a temporary collision shape to test full height
-	var space_state = get_world_2d().direct_space_state
-	var query = PhysicsShapeQueryParameters2D.new()
-	
-	# Create a test shape at the position where the full collision would be
-	var test_shape = RectangleShape2D.new()
-	test_shape.size = collision_idle_size
-	
-	# Position the test shape at where the idle collision would be
-	var test_transform = Transform2D(0, global_position + collision_idle_offset)
-	
-	query.shape = test_shape
-	query.transform = test_transform
-	query.collision_mask = 1 # Same collision mask as player
-	query.exclude = [self.get_rid()] # Exclude the player's own collision
-	
-	# Check if there's any collision
-	var result = space_state.intersect_shape(query, 1)
-	
-	# If no collision found, there's enough clearance
-	return result.is_empty()
-
-# Platformer improvement functions
-func update_platformer_timers(delta: float) -> void:
-	"""Update jump buffering and coyote time timers"""
-	# Update jump buffer timer
-	if jump_buffer_timer > 0.0:
-		jump_buffer_timer -= delta
-	
-	# Update coyote timer
-	if is_on_floor():
-		coyote_timer = coyote_time
-	else:
-		coyote_timer = max(0.0, coyote_timer - delta)
-	
-	# Reset jump phase when coyote time expires and we're not actually jumping
-	# This fixes the issue where jump animation gets stuck after coyote time
-	if coyote_timer <= 0.0 and jump_phase != JumpPhase.NONE and not is_on_floor() and velocity.y >= 0:
-		# Only reset if we're not in a proper jump (velocity.y >= 0 means we're falling, not jumping up)
-		# and we're not in the middle of a legitimate jump sequence
-		if jump_phase == JumpPhase.UP or jump_phase == JumpPhase.PEAK:
-			jump_phase = JumpPhase.NONE
-	
-	# Track floor state for next frame
-	was_on_floor = is_on_floor()
-
-func try_consume_buffered_jump() -> void:
-	"""Try to consume a buffered jump input after movement"""
-	if jump_buffer_timer <= 0.0:
-		return
-	
-	# Can jump if on floor or in coyote time, and not crouching/climbing
-	if (is_on_floor() or coyote_timer > 0.0) and not is_crouching and not is_climbing:
-		do_jump()
-		jump_buffer_timer = 0.0
-		coyote_timer = 0.0
-
-func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
-	"""Centralized jump function for consistent behavior"""
-	jump_phase = JumpPhase.UP
-	velocity.y = jump_strength
-	# Clear any conflicting timers
-	jump_buffer_timer = 0.0
-	coyote_timer = 0.0
-
-func handle_ledge_push_around() -> void:
-	"""Try to push player around ledge when hitting ceiling"""
-	var space_state = get_world_2d().direct_space_state
-	
-	# Check if there's space to the left and right
-	var left_probe_pos = global_position + Vector2(-ledge_probe_offset, -collision_jump_size.y)
-	var right_probe_pos = global_position + Vector2(ledge_probe_offset, -collision_jump_size.y)
-	
-	# Use the correct Godot 4 API for intersect_point
-	var left_free = space_state.intersect_point(left_probe_pos).is_empty()
-	var right_free = space_state.intersect_point(right_probe_pos).is_empty()
-	
-	# Push in the direction that has space
-	if right_free and not left_free:
-		global_position.x += ledge_push_amount
-	elif left_free and not right_free:
-		global_position.x -= ledge_push_amount

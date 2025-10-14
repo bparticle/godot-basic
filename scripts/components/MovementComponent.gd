@@ -1,21 +1,53 @@
 class_name MovementComponent
 extends Node
 
-# Movement component interface for flexible input handling
-# Implements the duck typing approach from the tutorial
+# Movement component for handling player input
+# Provides input state to the state machine
 
-# Returns the desired horizontal movement direction (-1 to 1)
+# Input state variables
+var movement_direction: float = 0.0
+var jump_pressed: bool = false
+var jump_just_pressed: bool = false
+var crouch_pressed: bool = false
+var climb_pressed: bool = false
+
+# Reference to the entity this component belongs to
+var entity: Node
+
+func _ready():
+	entity = get_parent()
+
+func _process(_delta: float):
+	"""Update input state every frame"""
+	_update_input_state()
+
+func _update_input_state():
+	"""Update all input state variables"""
+	# Horizontal movement
+	movement_direction = Input.get_axis("ui_left", "ui_right")
+	
+	# Jump input
+	jump_just_pressed = Input.is_action_just_pressed("ui_up")
+	jump_pressed = Input.is_action_pressed("ui_up")
+	
+	# Crouch input
+	crouch_pressed = Input.is_action_pressed("ui_down")
+	
+	# Climb input (up or down while near ladder)
+	climb_pressed = Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")
+
+# Public interface methods for states to query input
 func get_movement_direction() -> float:
-	return 0.0
+	return movement_direction
 
-# Returns true if the character wants to jump
 func wants_to_jump() -> bool:
-	return false
+	return jump_just_pressed
 
-# Returns true if the character wants to crouch
+func is_jumping() -> bool:
+	return jump_pressed
+
 func wants_to_crouch() -> bool:
-	return false
+	return crouch_pressed
 
-# Returns true if the character wants to climb
 func wants_to_climb() -> bool:
-	return false
+	return climb_pressed

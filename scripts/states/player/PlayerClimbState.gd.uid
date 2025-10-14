@@ -1,0 +1,10 @@
+[remap]
+
+importer=""
+type="GDScript"
+uid="uid://h4d3e8f9g0h1i2j3k4l5m6n7o8p9q0r1"
+path="res://scripts/states/player/PlayerClimbState.gd"
+metadata={
+"vcs_source_file": "",
+"vcs_source_modified": false
+}

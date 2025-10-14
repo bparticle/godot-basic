@@ -1,1 +1,10 @@
-uid://1lxrcse8olx3
+[remap]
+
+importer=""
+type="GDScript"
+uid="uid://b8x7y2k3m4n5p6q7r8s9t0u1v2w3x4y5"
+path="res://scripts/states/State.gd"
+metadata={
+"vcs_source_file": "",
+"vcs_source_modified": false
+}

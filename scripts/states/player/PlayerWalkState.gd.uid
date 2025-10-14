@@ -1,0 +1,10 @@
+[remap]
+
+importer=""
+type="GDScript"
+uid="uid://e1a0b5c6d7e8f9g0h1i2j3k4l5m6n7o8"
+path="res://scripts/states/player/PlayerWalkState.gd"
+metadata={
+"vcs_source_file": "",
+"vcs_source_modified": false
+}

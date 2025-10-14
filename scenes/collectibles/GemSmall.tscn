@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://cgh6nlq6jv47o"]
 
-[ext_resource type="Script" path="res://scripts/collectibles/GemSmall.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c3ae7vuf6i2wf" path="res://scripts/collectibles/GemSmall.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://d3r5gl3u24sly" path="res://assets/tiles/pixelassets.png" id="2_texture"]
 
 [sub_resource type="AtlasTexture" id="gem_small_atlas"]

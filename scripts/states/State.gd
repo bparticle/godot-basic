@@ -1,10 +1,19 @@
 class_name State
 extends Node
 
-# Base state class for all states in the state machine
-# Follows the tutorial pattern with enter, exit, update, and physics_update
+# Base state class for the state machine pattern
+# All states inherit from this class
 
-signal transition_requested(state_name: String)
+# Reference to the state machine that owns this state
+var state_machine: StateMachine
+# Reference to the entity this state belongs to
+var entity: Node
+
+func _ready():
+	# Get references to parent state machine and entity
+	state_machine = get_parent()
+	if state_machine:
+		entity = state_machine.get_parent()
 
 # Called when entering this state
 func enter() -> void:
@@ -14,14 +23,14 @@ func enter() -> void:
 func exit() -> void:
 	pass
 
-# Called every frame (tied to visual frame rate)
-func update(delta: float) -> void:
+# Called every frame while in this state
+func update(_delta: float) -> void:
 	pass
 
-# Called every physics frame (tied to physics server)
-func physics_update(delta: float) -> void:
+# Called every physics frame while in this state
+func physics_update(_delta: float) -> void:
 	pass
 
-# Helper method to request state transition
-func transition_to(state_name: String) -> void:
-	transition_requested.emit(state_name)
+# Called when input is received while in this state
+func handle_input(_event: InputEvent) -> void:
+	pass

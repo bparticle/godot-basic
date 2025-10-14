@@ -1,53 +1,57 @@
 class_name StateMachine
 extends Node
 
-# State machine implementation following tutorial patterns
-# Manages state transitions and lifecycle
+# State machine manager for handling state transitions
+# Follows the Godot 4 state machine pattern
 
-@export var initial_state: String = ""
-
-var states: Dictionary = {}
+# Current active state
 var current_state: State
+# Dictionary of all available states
+var states: Dictionary = {}
+
+# Reference to the entity this state machine belongs to
+var entity: Node
 
 func _ready():
-	# Register all child states
+	entity = get_parent()
+	# Initialize all child states
+	_initialize_states()
+
+func _initialize_states():
+	"""Initialize all child states and store them in the states dictionary"""
 	for child in get_children():
 		if child is State:
-			states[child.name.to_lower()] = child
-			# Connect transition signal
-			child.transition_requested.connect(_on_state_transition_requested)
-	
-	# Set initial state
-	if initial_state != "" and initial_state.to_lower() in states:
-		change_state(initial_state.to_lower())
-
-func _process(delta: float):
-	if current_state:
-		current_state.update(delta)
-
-func _physics_process(delta: float):
-	if current_state:
-		current_state.physics_update(delta)
+			var state = child as State
+			states[state.name] = state
+			state.state_machine = self
 
 func change_state(state_name: String) -> void:
-	# Validate state exists
-	if not state_name in states:
-		push_error("State '%s' not found in state machine" % state_name)
+	"""Change to a new state by name"""
+	if not states.has(state_name):
+		push_error("State '" + state_name + "' not found in state machine")
 		return
+	
+	var new_state = states[state_name]
 	
 	# Exit current state
 	if current_state:
 		current_state.exit()
 	
 	# Enter new state
-	current_state = states[state_name]
+	current_state = new_state
 	current_state.enter()
 
-func _on_state_transition_requested(state_name: String) -> void:
-	change_state(state_name)
+func _process(delta: float):
+	"""Update current state"""
+	if current_state:
+		current_state.update(delta)
 
-func get_current_state_name() -> String:
-	return current_state.name if current_state else ""
+func _physics_process(delta: float):
+	"""Physics update current state"""
+	if current_state:
+		current_state.physics_update(delta)
 
-func has_state(state_name: String) -> bool:
-	return state_name in states
+func _unhandled_input(event: InputEvent):
+	"""Handle input for current state"""
+	if current_state:
+		current_state.handle_input(event)

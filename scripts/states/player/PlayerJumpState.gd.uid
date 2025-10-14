@@ -1,0 +1,10 @@
+[remap]
+
+importer=""
+type="GDScript"
+uid="uid://f2b1c6d7e8f9g0h1i2j3k4l5m6n7o8p9"
+path="res://scripts/states/player/PlayerJumpState.gd"
+metadata={
+"vcs_source_file": "",
+"vcs_source_modified": false
+}

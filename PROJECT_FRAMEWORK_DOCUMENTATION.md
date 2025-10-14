@@ -49,6 +49,8 @@ Game (Node2D)
 
 ## 🎮 State Machine System
 
+**⚠️ CRITICAL REQUIREMENT: All entity behaviors MUST use the state machine pattern. This is the state-of-the-art approach in Godot 4 and is required for maintainable, scalable code.**
+
 ### Base Architecture
 The project uses a sophisticated state machine system following Godot tutorial best practices:
 
@@ -532,6 +534,8 @@ scenes/
 
 ### Creating New States
 
+**⚠️ MANDATORY: All entity behaviors must use state machines. No exceptions.**
+
 1. **Extend State class**:
    ```gdscript
    class_name NewState
@@ -541,6 +545,13 @@ scenes/
    - `enter()`, `exit()`, `update()`, `physics_update()`
 3. **Add to StateMachine** as child node
 4. **Set up transitions** in `check_transitions()`
+
+**Why State Machines Are Required:**
+- **Scalability**: Easy to add new behaviors without modifying existing code
+- **Maintainability**: Clear separation of concerns and state logic
+- **Debugging**: Easy to track which state an entity is in
+- **Performance**: Efficient state management with minimal overhead
+- **Godot 4 Best Practice**: This is the recommended pattern for complex entity behaviors
 
 ### Creating New Collectibles
 

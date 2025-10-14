@@ -1,0 +1,10 @@
+[remap]
+
+importer=""
+type="GDScript"
+uid="uid://g3c2d7e8f9g0h1i2j3k4l5m6n7o8p9q0"
+path="res://scripts/states/player/PlayerCrouchState.gd"
+metadata={
+"vcs_source_file": "",
+"vcs_source_modified": false
+}

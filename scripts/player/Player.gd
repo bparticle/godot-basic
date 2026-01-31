@@ -49,6 +49,7 @@ enum JumpPhase {
 @export_group("Death Tile Effects")
 @export var flash_intensity_max: float = 0.7 # Maximum flash intensity (0.0 = no effect, 1.0 = full white)
 @export var flash_duration: float = 0.3 # How long the flash lasts in seconds
+@export var debug_death_tiles: bool = true
 
 # Jump system - simple UP key jumping
 @export var jump_power: float = 1.0 # Jump power multiplier
@@ -235,6 +236,7 @@ var footstep_timer: float = 0.0
 # Death tile coordinates (atlas coordinates)
 const DEATH_TILES = [
 	Vector2i(0, 1), # (0,1)
+	Vector2i(1, 1), # (1,1)
 	Vector2i(6, 0), # (6,0)
 	Vector2i(6, 1), # (6,1)
 	Vector2i(7, 2)  # (7,2)
@@ -298,7 +300,7 @@ func _physics_process(delta: float) -> void:
 func should_be_climbing() -> bool:
 	"""Check if player should be in climbing state"""
 	# Check if we're near a ladder (regardless of input)
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
 	if not tilemap:
 		return false
 	
@@ -307,7 +309,7 @@ func should_be_climbing() -> bool:
 	for x in range(-check_radius, check_radius + 1, 4):
 		for y in range(-check_radius, check_radius + 1, 4):
 			var check_pos = global_position + Vector2(x, y)
-			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_pos = tilemap.local_to_map(tilemap.to_local(check_pos))
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			
 			# Check if this is any ladder tile variant
@@ -547,7 +549,7 @@ func check_ladder_interaction() -> void:
 		return
 	
 	# Use a more robust approach: check for ladder tiles in a radius around the player
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
 	if not tilemap:
 		return
 	
@@ -560,7 +562,7 @@ func check_ladder_interaction() -> void:
 	for x in range(-check_radius, check_radius + 1, 4): # Check every 4 pixels
 		for y in range(-check_radius, check_radius + 1, 4):
 			var check_pos = global_position + Vector2(x, y)
-			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_pos = tilemap.local_to_map(tilemap.to_local(check_pos))
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			
 			# Check if this is any ladder tile variant
@@ -580,20 +582,30 @@ func check_ladder_interaction() -> void:
 		var tile_size = tilemap.tile_set.tile_size
 		ladder_center_x = center_tile_x * tile_size.x + (tile_size.x / 2.0)
 	
+	# Determine if player is actually inside a ladder tile (prevents snapping from nearby)
+	var ladder_at_player = false
+	if ladder_found:
+		var player_tile_pos = tilemap.local_to_map(tilemap.to_local(global_position))
+		var player_tile_atlas = tilemap.get_cell_atlas_coords(player_tile_pos)
+		ladder_at_player = player_tile_atlas in LADDER_TILES
+	
 	# Handle ladder interaction
 	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
+		var is_ascending = (not is_on_floor()) and velocity.y < 0.0
 		# Special case: if we're standing ON TOP of platform-ladder and pressing down, don't start climbing
 		# Let the pass-through mechanism handle it instead
 		var should_prevent_climbing = false
 		if Input.is_action_pressed("ui_down"):
 			# Check if we're standing directly on top of a platform-ladder tile
 			var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
-			var tile_pos = tilemap.local_to_map(check_pos)
+			var tile_pos = tilemap.local_to_map(tilemap.to_local(check_pos))
 			var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 			should_prevent_climbing = (tile_atlas_coords == PLATFORM_LADDER_TILE)
 		
 		# Start climbing unless we're standing on platform-ladder with down input
-		if not should_prevent_climbing:
+		# or we're still rising during a jump (prevents mid-air ladder snap)
+		# and only when we're actually inside a ladder tile (prevents nearby grab)
+		if not should_prevent_climbing and not is_ascending and ladder_at_player:
 			is_climbing = true
 			is_crouching = false # Can't crouch while climbing
 	elif not ladder_found:
@@ -613,13 +625,13 @@ func check_platform_ladder_pass_through() -> void:
 		return
 	
 	# Check if we're standing on a platform-ladder tile
-	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer")
+	var tilemap = room_manager.current_room_instance.get_node("TileMapLayer") if room_manager and room_manager.current_room_instance else null
 	if not tilemap:
 		return
 	
 	# Check tile directly below player's feet
 	var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
-	var tile_pos = tilemap.local_to_map(check_pos)
+	var tile_pos = tilemap.local_to_map(tilemap.to_local(check_pos))
 	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 	
 	# Check if we're standing on platform-ladder and pressing down
@@ -835,15 +847,23 @@ func handle_spike_damage() -> void:
 	sample_points.append(global_position + Vector2(half_width, -half_height))
 
 	var spike_hit = false
+	var spike_hit_atlas: Vector2i = Vector2i(-1, -1)
+	var spike_hit_map: Vector2i = Vector2i(-1, -1)
 	for p in sample_points:
-		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var local_p = tilemap.to_local(p)
+		var map_pos: Vector2i = tilemap.local_to_map(local_p)
 		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
-		if atlas == SPIKE_ATLAS_COORD:
+		if atlas == SPIKE_ATLAS_COORD and not (atlas in DEATH_TILES):
 			spike_hit = true
+			spike_hit_atlas = atlas
+			spike_hit_map = map_pos
 			break
 
 	if not spike_hit:
 		return
+	
+	if debug_death_tiles:
+		print("[SPIKE] hit atlas=", spike_hit_atlas, " map=", spike_hit_map, " local_p=", tilemap.to_local(global_position))
 
 	# If dead, only allow one spike hit to show the final knockback
 	if is_dead:
@@ -897,20 +917,39 @@ func handle_death_tiles() -> void:
 	sample_points.append(global_position + Vector2(half_width, -half_height))
 
 	var death_tile_detected = false
+	var death_hit_atlas: Vector2i = Vector2i(-1, -1)
+	var death_hit_map: Vector2i = Vector2i(-1, -1)
 	for p in sample_points:
-		var map_pos: Vector2i = tilemap.local_to_map(p)
+		var local_p = tilemap.to_local(p)
+		var map_pos: Vector2i = tilemap.local_to_map(local_p)
 		var atlas: Vector2i = tilemap.get_cell_atlas_coords(map_pos)
 		if atlas in DEATH_TILES:
 			death_tile_detected = true
+			death_hit_atlas = atlas
+			death_hit_map = map_pos
 			break
 
 	if death_tile_detected:
-		# Set death tile hit flag for animation - no damage applied
-		# The existing death zones will handle the actual damage
+		if debug_death_tiles:
+			print("[DEATH] hit atlas=", death_hit_atlas, " map=", death_hit_map, " local_p=", tilemap.to_local(global_position), " was_touching=", was_touching_death_tile)
+		# Set death tile hit flag for animation
 		death_tile_hit = true
-		was_touching_death_tile = true
 		# Trigger white flash shader effect
 		trigger_white_flash()
+		# Apply damage only on initial contact (prevents draining multiple lives)
+		if not was_touching_death_tile and not is_dead:
+			if health_manager:
+				health_manager.take_damage(1)
+			# Short immunity to prevent multiple life loss from one contact
+			damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
+			# Lock player into damage/death state until respawn
+			is_dead = true
+			has_shown_death_knockback = true
+			was_touching_death_tile = true
+			velocity = Vector2.ZERO
+		was_touching_death_tile = true
+	else:
+		was_touching_death_tile = false
 
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - set dead state when lives reach 0"""

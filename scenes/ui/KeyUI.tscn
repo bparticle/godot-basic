@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3 uid="uid://keyui001"]
+
+[ext_resource type="Script" path="res://scripts/ui/KeyUI.gd" id="1_key_script"]
+
+[node name="KeyUI" type="Control"]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -18.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 10.0
+script = ExtResource("1_key_script")
+
+[node name="KeyIcon" type="TextureRect" parent="."]
+layout_mode = 0
+stretch_mode = 0
+custom_minimum_size = Vector2(8, 8)

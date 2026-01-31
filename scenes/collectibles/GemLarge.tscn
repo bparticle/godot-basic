@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://cggf6qq35h4wv"]
+[gd_scene load_steps=6 format=3 uid="uid://cggf6qq35h4wv"]
 
 [ext_resource type="Script" uid="uid://6ptfxguao76d" path="res://scripts/collectibles/GemLarge.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://d3r5gl3u24sly" path="res://assets/tiles/pixelassets.png" id="2_texture"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/SFX 01.wav" id="3_pickup"]
 
 [sub_resource type="AtlasTexture" id="gem_large_atlas"]
 atlas = ExtResource("2_texture")
@@ -20,3 +21,4 @@ texture = SubResource("gem_large_atlas")
 shape = SubResource("collision_shape")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_pickup")

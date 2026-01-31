@@ -2,7 +2,7 @@ extends CanvasLayer
 
 # Simple fade-based scene changer singleton
 
-@export var fade_color: Color = Color.BLACK
+@export var fade_color: Color = Color(0.101961, 0.101961, 0.101961, 1)
 @export var fade_duration: float = 0.25
 
 var _rect: ColorRect

@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://c6vso8d8k6j3w"
+path="res://.godot/imported/SFX 02-2.wav-e957f567ddf46cc4d4bf07e8a7ed4042.sample"
+
+[deps]
+
+source_file="res://assets/audio/sfx/SFX 02-2.wav"
+dest_files=["res://.godot/imported/SFX 02-2.wav-e957f567ddf46cc4d4bf07e8a7ed4042.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

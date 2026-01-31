@@ -19,6 +19,7 @@ offset_left = -66.0
 offset_top = -277.0
 offset_right = 531.0
 offset_bottom = 742.0
+color = Color(0.101961, 0.101961, 0.101961, 1)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
 position = Vector2(-19, -21)

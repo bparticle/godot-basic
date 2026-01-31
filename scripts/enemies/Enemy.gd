@@ -23,7 +23,7 @@ enum EnemyType {
 @export var attack_range: float = 20.0
 @export var attack_damage: int = 1
 @export var max_health: int = 3
-@export var enemy_color: Color = Color.RED
+@export var enemy_color: Color = Color(0.176471, 0.996078, 0.223529, 1)
 
 @export_group("AI Behavior")
 @export var chase_speed_multiplier: float = 1.5
@@ -111,11 +111,11 @@ func _draw():
 	
 	if debug_draw_detection:
 		# Draw detection range
-		draw_arc(Vector2.ZERO, detection_range, 0, TAU, 32, Color.YELLOW, 2.0)
+		draw_arc(Vector2.ZERO, detection_range, 0, TAU, 32, Color(0.176471, 0.996078, 0.223529, 1), 2.0)
 		# Draw attack range
-		draw_arc(Vector2.ZERO, attack_range, 0, TAU, 16, Color.RED, 2.0)
+		draw_arc(Vector2.ZERO, attack_range, 0, TAU, 16, Color(0.176471, 0.996078, 0.223529, 1), 2.0)
 	
 	if debug_draw_ai and target:
 		# Draw line to target
 		var target_pos = target.global_position - global_position
-		draw_line(Vector2.ZERO, target_pos, Color.CYAN, 2.0)
+		draw_line(Vector2.ZERO, target_pos, Color(0.176471, 0.996078, 0.223529, 1), 2.0)

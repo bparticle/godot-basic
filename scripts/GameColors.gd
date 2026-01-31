@@ -6,47 +6,47 @@ extends Node
 
 # Dark colors
 @export_group("Dark Colors")
-@export var dark_brown: Color = Color("#181010")        # Darkest brown
-@export var dark_gray: Color = Color("#3A393C")         # Dark gray
-@export var dark_purple: Color = Color("#633566")       # Dark purple
-@export var medium_gray: Color = Color("#4B4B4B")       # Medium gray
+@export var dark_brown: Color = Color("#1A1A1A")        # Darkest background
+@export var dark_gray: Color = Color("#1A1A1A")         # Dark background
+@export var dark_purple: Color = Color("#1A1A1A")       # Dark background
+@export var medium_gray: Color = Color("#1A1A1A")       # Medium background
 
 # Purple tones
 @export_group("Purple Tones")
-@export var light_purple: Color = Color("#AE8AB8")      # Light purple
-@export var purple: Color = Color("#84739C")            # Main purple
-@export var deep_purple: Color = Color("#614C7E")       # Deep purple
+@export var light_purple: Color = Color("#2DFE39")      # Accent green
+@export var purple: Color = Color("#2DFE39")            # Main green
+@export var deep_purple: Color = Color("#2DFE39")       # Deep green
 
 # Orange/Peach tones
 @export_group("Warm Tones")
-@export var orange: Color = Color("#F29155")            # Bright orange
-@export var peach: Color = Color("#F7B58C")             # Peach
-@export var light_peach: Color = Color("#FFD6BD")       # Light peach
-@export var cream: Color = Color("#FFF2D7")            # Cream
+@export var orange: Color = Color("#2DFE39")            # Accent green
+@export var peach: Color = Color("#2DFE39")             # Accent green
+@export var light_peach: Color = Color("#2DFE39")       # Accent green
+@export var cream: Color = Color("#2DFE39")            # Accent green
 
 # Light colors
 @export_group("Light Colors")
-@export var off_white: Color = Color("#FFEFFF")         # Off white
-@export var light_gray: Color = Color("#EFEFEF")        # Light gray
-@export var white: Color = Color("#FFFFFF")             # Pure white
-@export var gray: Color = Color("#A9A9A9")              # Standard gray
+@export var off_white: Color = Color("#2DFE39")         # Bright green
+@export var light_gray: Color = Color("#2DFE39")        # Bright green
+@export var white: Color = Color("#2DFE39")             # Bright green
+@export var gray: Color = Color("#2DFE39")              # Bright green
 
 # Legacy const access for backward compatibility
-const DARK_BROWN = Color("#181010")
-const DARK_GRAY = Color("#3A393C")
-const DARK_PURPLE = Color("#633566")
-const MEDIUM_GRAY = Color("#4B4B4B")
-const LIGHT_PURPLE = Color("#AE8AB8")
-const PURPLE = Color("#84739C")
-const DEEP_PURPLE = Color("#614C7E")
-const ORANGE = Color("#F29155")
-const PEACH = Color("#F7B58C")
-const LIGHT_PEACH = Color("#FFD6BD")
-const CREAM = Color("#FFF2D7")
-const OFF_WHITE = Color("#FFEFFF")
-const LIGHT_GRAY = Color("#EFEFEF")
-const WHITE = Color("#FFFFFF")
-const GRAY = Color("#A9A9A9")
+const DARK_BROWN = Color("#1A1A1A")
+const DARK_GRAY = Color("#1A1A1A")
+const DARK_PURPLE = Color("#1A1A1A")
+const MEDIUM_GRAY = Color("#1A1A1A")
+const LIGHT_PURPLE = Color("#2DFE39")
+const PURPLE = Color("#2DFE39")
+const DEEP_PURPLE = Color("#2DFE39")
+const ORANGE = Color("#2DFE39")
+const PEACH = Color("#2DFE39")
+const LIGHT_PEACH = Color("#2DFE39")
+const CREAM = Color("#2DFE39")
+const OFF_WHITE = Color("#2DFE39")
+const LIGHT_GRAY = Color("#2DFE39")
+const WHITE = Color("#2DFE39")
+const GRAY = Color("#2DFE39")
 
 ## Get all colors as an array
 static func get_all_colors() -> Array[Color]:

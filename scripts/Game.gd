@@ -59,10 +59,10 @@ func _draw():
 	if debug_show_room_info and room_manager:
 		# Draw room information
 		var room_info = "Room: " + str(room_manager.current_room.id if room_manager.current_room else "None")
-		draw_string(ThemeDB.fallback_font, Vector2(10, y_offset), room_info, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE)
+		draw_string(ThemeDB.fallback_font, Vector2(10, y_offset), room_info, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.176471, 0.996078, 0.223529, 1))
 		y_offset += 25
 	
 	if debug_show_player_info and health_manager:
 		# Draw player health information
 		var health_info = "Lives: " + str(health_manager.current_lives) + "/" + str(health_manager.max_lives)
-		draw_string(ThemeDB.fallback_font, Vector2(10, y_offset), health_info, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE)
+		draw_string(ThemeDB.fallback_font, Vector2(10, y_offset), health_info, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.176471, 0.996078, 0.223529, 1))

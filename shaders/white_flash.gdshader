@@ -9,8 +9,8 @@ void fragment() {
 	// Calculate flash effect based on intensity and duration
 	float flash = flash_intensity * (1.0 - flash_duration);
 	
-	// Mix original color with white based on flash intensity
-	vec3 flash_color = mix(original_color.rgb, vec3(1.0, 1.0, 1.0), flash);
+	// Mix original color with retro green based on flash intensity
+	vec3 flash_color = mix(original_color.rgb, vec3(0.176471, 0.996078, 0.223529), flash);
 	
 	COLOR = vec4(flash_color, original_color.a);
 }

@@ -10,6 +10,9 @@ class_name Collectible
 var is_collected: bool = false
 var original_y: float
 var tween: Tween
+@onready var pickup_player: AudioStreamPlayer2D = $AudioStreamPlayer2D
+@onready var pickup_sprite: Sprite2D = $Sprite2D
+@onready var pickup_collision: CollisionShape2D = $CollisionShape2D
 
 func _ready():
 	# Store original Y position
@@ -45,6 +48,13 @@ func collect():
 	if tween:
 		tween.kill()
 	
-	# Play collection animation or effect here
-	# For now, just remove the collectible
+	# Play pickup sound, then remove the collectible
+	if pickup_player and pickup_player.stream:
+		if pickup_sprite:
+			pickup_sprite.visible = false
+		if pickup_collision:
+			pickup_collision.disabled = true
+		monitoring = false
+		pickup_player.play()
+		await pickup_player.finished
 	queue_free()

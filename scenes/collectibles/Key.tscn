@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://bpxv8kqxqxqxq"]
+[gd_scene load_steps=6 format=3 uid="uid://bpxv8kqxqxqxq"]
 
 [ext_resource type="Script" path="res://scripts/collectibles/Key.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://d3r5gl3u24sly" path="res://assets/tiles/pixelassets.png" id="2_texture"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/SFX 03.wav" id="3_pickup"]
 
 [sub_resource type="AtlasTexture" id="key_atlas"]
 atlas = ExtResource("2_texture")
@@ -20,3 +21,4 @@ texture = SubResource("key_atlas")
 shape = SubResource("collision_shape")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_pickup")

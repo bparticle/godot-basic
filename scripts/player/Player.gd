@@ -29,9 +29,21 @@ enum JumpPhase {
 
 # Visual settings
 @export_group("Visual Settings")
-@export var player_color: Color = Color.WHITE
+@export var player_color: Color = Color(0.176471, 0.996078, 0.223529, 1)
 @export var debug_draw_collision: bool = false
 @export var debug_draw_movement: bool = false
+
+# Audio settings
+@export_group("Audio Settings")
+@export var footstep_stream: AudioStream
+@export var footstep_interval: float = 0.18
+@export var footstep_min_speed: float = 5.0
+@export var footstep_volume_db: float = -6.0
+@export var land_stream: AudioStream
+@export var land_volume_db: float = -6.0
+@export var land_min_fall_speed: float = 140.0
+@export var jump_stream: AudioStream
+@export var jump_volume_db: float = -6.0
 
 # Death tile visual feedback
 @export_group("Death Tile Effects")
@@ -70,6 +82,9 @@ enum JumpPhase {
 # References - Using $ for direct child references (more reliable for current scene structure)
 @onready var animated_sprite = $AnimatedSprite2D
 @onready var collision_shape = $CollisionShape2D
+@onready var footstep_player = $FootstepPlayer
+@onready var land_player = $LandPlayer
+@onready var jump_player = $JumpPlayer
 @onready var room_manager = get_node("/root/RoomManager")
 @onready var state_machine = $StateMachine
 @onready var movement_component = $MovementComponent
@@ -83,10 +98,26 @@ func _ready():
 	# Listen for health changes to detect death
 	if health_manager:
 		health_manager.health_changed.connect(_on_health_changed)
+		if health_manager.has_method("get_current_lives"):
+			last_lives = health_manager.get_current_lives()
 	
 	# Apply visual settings
 	if animated_sprite:
 		animated_sprite.modulate = player_color
+
+	# Apply audio settings
+	if footstep_player:
+		footstep_player.volume_db = footstep_volume_db
+		if footstep_stream:
+			footstep_player.stream = footstep_stream
+	if land_player:
+		land_player.volume_db = land_volume_db
+		if land_stream:
+			land_player.stream = land_stream
+	if jump_player:
+		jump_player.volume_db = jump_volume_db
+		if jump_stream:
+			jump_player.stream = jump_stream
 	
 	# Load and setup white flash shader
 	white_flash_shader = load("res://shaders/white_flash.gdshader")
@@ -191,10 +222,15 @@ var death_tile_hit = false # Flag for death tile contact
 var was_touching_death_tile = false # Persistent flag for death tile contact
 var damage_animation_timer = 0.0 # Timer for damage animation
 var show_damage_animation = false # Flag to show damage animation
+var last_lives: int = -1
+var suppress_landing_sfx_until_ms: int = 0
 
 # Shader for white flash effect
 var white_flash_shader: Shader
 var flash_intensity: float = 0.0
+
+# Footstep timing
+var footstep_timer: float = 0.0
 
 # Death tile coordinates (atlas coordinates)
 const DEATH_TILES = [
@@ -244,6 +280,9 @@ func _physics_process(delta: float) -> void:
 	# Handle climbing if in climb state
 	if is_climbing:
 		handle_climbing(delta)
+
+	# Play footsteps while moving or climbing
+	update_footsteps(delta)
 	
 	# Try to consume buffered jump after movement
 	try_consume_buffered_jump()
@@ -251,7 +290,9 @@ func _physics_process(delta: float) -> void:
 	# Update animation and collision
 	update_animation()
 	update_collision_shape() # Update collision based on animation
+	var pre_move_velocity_y = velocity.y
 	move_and_slide()
+	handle_landing_sfx(pre_move_velocity_y)
 
 # State machine integration methods
 func should_be_climbing() -> bool:
@@ -302,6 +343,33 @@ func handle_movement(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, direction * current_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
+
+func update_footsteps(delta: float) -> void:
+	"""Play spaced footsteps while walking or climbing."""
+	var moving_on_floor = is_on_floor() and abs(velocity.x) > footstep_min_speed
+	var moving_on_ladder = is_climbing and abs(velocity.y) > footstep_min_speed
+	var should_play = moving_on_floor or moving_on_ladder
+
+	if not should_play:
+		footstep_timer = 0.0
+		return
+
+	footstep_timer -= delta
+	if footstep_timer <= 0.0:
+		if footstep_player and footstep_player.stream:
+			footstep_player.play()
+		footstep_timer = footstep_interval
+
+func handle_landing_sfx(pre_move_velocity_y: float) -> void:
+	"""Play landing sound when hitting the ground after a jump or big fall."""
+	if Time.get_ticks_msec() < suppress_landing_sfx_until_ms:
+		return
+	if not was_on_floor and is_on_floor():
+		var landing_speed = abs(pre_move_velocity_y)
+		var from_jump = jump_phase != JumpPhase.NONE
+		if from_jump or landing_speed >= land_min_fall_speed:
+			if land_player and land_player.stream:
+				land_player.play()
 
 func process_inputs() -> void:
 	"""Centralized input processing - handles all input states and transitions"""
@@ -366,6 +434,8 @@ func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
 	"""Centralized jump function for consistent behavior"""
 	jump_phase = JumpPhase.UP
 	velocity.y = jump_strength
+	if jump_player and jump_player.stream:
+		jump_player.play()
 	# Clear any conflicting timers
 	jump_buffer_timer = 0.0
 	coyote_timer = 0.0
@@ -844,6 +914,9 @@ func handle_death_tiles() -> void:
 
 func _on_health_changed(current_lives: int, _max_lives: int):
 	"""Handle health changes - set dead state when lives reach 0"""
+	if last_lives != -1 and current_lives < last_lives and current_lives > 0:
+		suppress_landing_sfx_until_ms = Time.get_ticks_msec() + 400
+	last_lives = current_lives
 	if current_lives <= 0 and not is_dead:
 		is_dead = true
 		# Don't stop movement immediately - let spike damage handle knockback first
@@ -1050,16 +1123,16 @@ func _draw():
 		if shape:
 			# Draw collision shape
 			var rect = Rect2(collision_shape.position - shape.size / 2, shape.size)
-			draw_rect(rect, Color.RED, false, 2.0)
+			draw_rect(rect, Color(0.176471, 0.996078, 0.223529, 1), false, 2.0)
 	
 	if debug_draw_movement:
 		# Draw velocity vector
 		var velocity_end = global_position + velocity * 0.1
-		draw_line(Vector2.ZERO, velocity_end - global_position, Color.BLUE, 2.0)
+		draw_line(Vector2.ZERO, velocity_end - global_position, Color(0.176471, 0.996078, 0.223529, 1), 2.0)
 		# Draw movement direction
 		if abs(velocity.x) > 0:
 			var direction = 1 if velocity.x > 0 else -1
-			draw_line(Vector2.ZERO, Vector2(direction * 20, 0), Color.GREEN, 3.0)
+			draw_line(Vector2.ZERO, Vector2(direction * 20, 0), Color(0.176471, 0.996078, 0.223529, 1), 3.0)
 
 func handle_platform_ladder_pass_through(delta: float) -> void:
 	"""Handle the platform-ladder pass-through mechanism"""

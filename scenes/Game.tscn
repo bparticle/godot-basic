@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/Game.gd" id="1_game_script"]
 [ext_resource type="Script" path="res://scripts/SmartCamera.gd" id="2_camera_script"]
 [ext_resource type="PackedScene" uid="uid://heartsui001" path="res://scenes/ui/HeartsUI.tscn" id="3_hearts_ui"]
-[ext_resource type="PackedScene" uid="uid://keyui001" path="res://scenes/ui/KeyUI.tscn" id="4_key_ui"]
+[ext_resource type="PackedScene" uid="uid://inventoryui001" path="res://scenes/ui/InventoryUI.tscn" id="4_inventory_ui"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game_script")
@@ -16,4 +16,4 @@ script = ExtResource("2_camera_script")
 
 [node name="HeartsUI" parent="UI" instance=ExtResource("3_hearts_ui")]
 
-[node name="KeyUI" parent="UI" instance=ExtResource("4_key_ui")]
+[node name="InventoryUI" parent="UI" instance=ExtResource("4_inventory_ui")]

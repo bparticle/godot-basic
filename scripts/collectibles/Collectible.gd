@@ -13,6 +13,7 @@ var tween: Tween
 @onready var pickup_player: AudioStreamPlayer2D = $AudioStreamPlayer2D
 @onready var pickup_sprite: Sprite2D = $Sprite2D
 @onready var pickup_collision: CollisionShape2D = $CollisionShape2D
+@onready var health_manager = get_node("/root/HealthManager")
 
 func _ready():
 	# Store original Y position
@@ -43,6 +44,9 @@ func collect():
 		return
 	
 	is_collected = true
+	
+	if health_manager and health_manager.has_method("register_collectible"):
+		health_manager.register_collectible(collectible_type, value)
 	
 	# Stop the hover animation
 	if tween:

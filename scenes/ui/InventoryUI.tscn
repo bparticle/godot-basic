@@ -1,0 +1,82 @@
+[gd_scene load_steps=5 format=3 uid="uid://dql4rkolmq4o7"]
+
+[ext_resource type="Script" path="res://scripts/ui/InventoryUI.gd" id="1_inventory_script"]
+[ext_resource type="FontFile" path="res://fonts/MedodicaRegular.otf" id="2_font"]
+
+[sub_resource type="StyleBoxFlat" id="slot_style"]
+bg_color = Color(0.101961, 0.101961, 0.101961, 1)
+border_color = Color(0.176471, 0.996078, 0.223529, 1)
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+border_width_bottom = 1
+
+[node name="InventoryUI" type="Control"]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -120.0
+offset_top = 1.0
+offset_right = -2.0
+offset_bottom = 15.0
+script = ExtResource("1_inventory_script")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/separation = 4
+alignment = 2
+
+[node name="SmallGemIcon" type="TextureRect" parent="HBoxContainer"]
+layout_mode = 0
+custom_minimum_size = Vector2(8, 8)
+stretch_mode = 2
+size_flags_vertical = 4
+
+[node name="SmallGemCount" type="Label" parent="HBoxContainer"]
+theme_override_colors/font_color = Color(0.176471, 0.996078, 0.223529, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "x0"
+size_flags_vertical = 4
+
+[node name="LargeGemIcon" type="TextureRect" parent="HBoxContainer"]
+layout_mode = 0
+custom_minimum_size = Vector2(8, 8)
+stretch_mode = 2
+size_flags_vertical = 4
+
+[node name="LargeGemCount" type="Label" parent="HBoxContainer"]
+theme_override_colors/font_color = Color(0.176471, 0.996078, 0.223529, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "x0"
+size_flags_vertical = 4
+
+[node name="KeySlot" type="PanelContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(10, 10)
+theme_override_styles/panel = SubResource("slot_style")
+size_flags_vertical = 4
+
+[node name="KeyMargin" type="MarginContainer" parent="HBoxContainer/KeySlot"]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 1
+theme_override_constants/margin_bottom = 1
+
+[node name="KeyIcon" type="TextureRect" parent="HBoxContainer/KeySlot/KeyMargin"]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+stretch_mode = 2
+custom_minimum_size = Vector2(8, 8)

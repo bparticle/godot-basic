@@ -7,12 +7,16 @@ signal health_changed(current_lives: int, max_lives: int)
 signal player_died()
 signal game_over()
 signal key_changed(has_key: bool)
+signal collectibles_changed(small_count: int, large_count: int, total_score: int)
 
 const MAX_LIVES = 3
 var current_lives = MAX_LIVES
 var last_spawn_position: Vector2
 var last_room_id: String
 var has_key: bool = false
+var small_gems: int = 0
+var large_gems: int = 0
+var total_score: int = 0
 @export var damage_cooldown_ms: int = 200
 var last_damage_ms: int = -100000
 @export var life_lost_stream: AudioStream
@@ -48,6 +52,7 @@ func reset_health():
 	"""Reset to full health (e.g., at game start)"""
 	current_lives = MAX_LIVES
 	health_changed.emit(current_lives, MAX_LIVES)
+	reset_collectibles()
 	set_has_key(false)
 
 func take_damage(amount: int = 1):
@@ -119,6 +124,32 @@ func set_has_key(value: bool) -> void:
 
 func get_has_key() -> bool:
 	return has_key
+
+func reset_collectibles() -> void:
+	small_gems = 0
+	large_gems = 0
+	total_score = 0
+	collectibles_changed.emit(small_gems, large_gems, total_score)
+
+func register_collectible(collectible_type: String, value: int) -> void:
+	match collectible_type:
+		"Small Gem":
+			small_gems += 1
+		"Large Gem":
+			large_gems += 1
+		_:
+			return
+	total_score += value
+	collectibles_changed.emit(small_gems, large_gems, total_score)
+
+func get_small_gems() -> int:
+	return small_gems
+
+func get_large_gems() -> int:
+	return large_gems
+
+func get_total_score() -> int:
+	return total_score
 
 func _play_life_lost_sfx() -> void:
 	if life_lost_player and life_lost_player.stream:

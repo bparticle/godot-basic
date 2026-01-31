@@ -1,7 +1,6 @@
 extends Collectible
 
 # Key collectible
-@onready var health_manager = get_node("/root/HealthManager")
 
 func _ready():
 	value = 1

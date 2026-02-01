@@ -16,4 +16,6 @@ func _on_restart_pressed():
 
 func _on_quit_pressed():
 	"""Quit the game"""
+	if health_manager and health_manager.has_method("send_current_collectibles_to_host"):
+		health_manager.send_current_collectibles_to_host()
 	get_tree().quit()

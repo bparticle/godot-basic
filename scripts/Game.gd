@@ -4,6 +4,8 @@ extends Node2D
 @export var initial_room: String = "room_0"  # Single source of truth for starting room
 @export var respawn_delay: float = 1.0
 @export var game_over_delay: float = 1.0
+@export var web_game_over_screen_duration: float = 1.5
+@export var game_over_texture_path: String = "res://assets/sprites/game-over.png"
 
 @export_group("Visual Settings")
 @export var debug_show_room_info: bool = false
@@ -11,6 +13,7 @@ extends Node2D
 
 @onready var room_manager = get_node("/root/RoomManager")
 @onready var health_manager = get_node("/root/HealthManager")
+var game_over_texture: Texture2D
 
 func _ready():
 	# Connect to health manager signals
@@ -18,6 +21,8 @@ func _ready():
 		health_manager.player_died.connect(_on_player_died)
 		health_manager.game_over.connect(_on_game_over)
 		health_manager.health_changed.connect(_on_health_changed)
+	if game_over_texture_path != "":
+		game_over_texture = load(game_over_texture_path)
 	
 	# Register this node as the game container
 	if room_manager:
@@ -35,18 +40,37 @@ func _on_player_died():
 
 func _on_game_over():
 	"""Handle game over"""
+	_show_game_over_overlay()
+	if OS.has_feature("web"):
+		await get_tree().create_timer(web_game_over_screen_duration).timeout
+		if health_manager and health_manager.has_method("send_game_over_to_host"):
+			health_manager.send_game_over_to_host()
+		get_tree().quit()
+		return
 	# Allow a short delay so the final knockback/life change is visible
 	await get_tree().create_timer(game_over_delay).timeout
-	# Clean up room manager before changing scenes
+	# Clean up room manager so the scene is static behind the overlay
 	if room_manager:
 		room_manager.cleanup()
-	# Fade transition to game over scene via SceneChanger singleton
-	SceneChanger.change_scene_to_file("res://scenes/ui/GameOver.tscn")
 
 func _on_health_changed(_current_lives: int, _max_lives: int):
 	"""Handle health changes - just track health, don't trigger game over here"""
 	# Don't trigger game over here - let the direct game_over signal handle it
 	# This prevents double-triggering of game over
+
+func _show_game_over_overlay() -> void:
+	if not game_over_texture:
+		return
+	var overlay = CanvasLayer.new()
+	overlay.name = "GameOverOverlay"
+	overlay.layer = 100
+	var rect = TextureRect.new()
+	rect.texture = game_over_texture
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(rect)
+	add_child(overlay)
 
 func _draw():
 	"""Debug drawing for game information"""

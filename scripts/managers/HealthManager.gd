@@ -17,6 +17,8 @@ var has_key: bool = false
 var small_gems: int = 0
 var large_gems: int = 0
 var total_score: int = 0
+var has_sent_collectibles: bool = false
+var run_start_ms: int = 0
 @export var damage_cooldown_ms: int = 200
 var last_damage_ms: int = -100000
 @export var life_lost_stream: AudioStream
@@ -51,6 +53,7 @@ func _ready():
 func reset_health():
 	"""Reset to full health (e.g., at game start)"""
 	current_lives = MAX_LIVES
+	run_start_ms = Time.get_ticks_msec()
 	health_changed.emit(current_lives, MAX_LIVES)
 	reset_collectibles()
 	set_has_key(false)
@@ -129,6 +132,7 @@ func reset_collectibles() -> void:
 	small_gems = 0
 	large_gems = 0
 	total_score = 0
+	has_sent_collectibles = false
 	collectibles_changed.emit(small_gems, large_gems, total_score)
 
 func register_collectible(collectible_type: String, value: int) -> void:
@@ -150,6 +154,46 @@ func get_large_gems() -> int:
 
 func get_total_score() -> int:
 	return total_score
+
+func get_run_elapsed_seconds() -> float:
+	if run_start_ms <= 0:
+		return 0.0
+	return max(0.0, (Time.get_ticks_msec() - run_start_ms) / 1000.0)
+
+func send_collectibles_to_host(gems: int, diamonds: int, time_seconds: float) -> void:
+	if has_sent_collectibles:
+		return
+	if not OS.has_feature("web"):
+		return
+	var payload = {
+		"type": "pimpa_raka_collectibles",
+		"gems": gems,
+		"diamonds": diamonds,
+		"time_seconds": time_seconds
+	}
+	var json = JSON.stringify(payload)
+	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
+	JavaScriptBridge.eval(js)
+	has_sent_collectibles = true
+
+func send_current_collectibles_to_host() -> void:
+	send_collectibles_to_host(small_gems, large_gems, get_run_elapsed_seconds())
+
+func send_game_over_to_host() -> void:
+	if has_sent_collectibles:
+		return
+	if not OS.has_feature("web"):
+		return
+	var payload = {
+		"type": "pimpa_raka_game_over",
+		"gems": small_gems,
+		"diamonds": large_gems,
+		"time_seconds": get_run_elapsed_seconds()
+	}
+	var json = JSON.stringify(payload)
+	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
+	JavaScriptBridge.eval(js)
+	has_sent_collectibles = true
 
 func _play_life_lost_sfx() -> void:
 	if life_lost_player and life_lost_player.stream:

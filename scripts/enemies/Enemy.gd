@@ -1,3 +1,4 @@
+class_name Enemy
 extends CharacterBody2D
 
 # Simple enemy with state machine AI

@@ -6,6 +6,9 @@
 # Framework Documentation Reference
 # CRITICAL: Always reference PROJECT_FRAMEWORK_DOCUMENTATION.md before making any changes
 # This document contains the complete framework architecture, patterns, and conventions.
+#
+# CRITICAL: For Terminal/host messaging, follow .cursor/rules/godot-terminal-bridge.mdc
+# and DATA_EXPORT_GUIDE.md in this project.
 
 # Project Context
 # This is a 2D platformer game built in Godot 4.3 with:

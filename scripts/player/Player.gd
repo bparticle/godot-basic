@@ -51,6 +51,15 @@ enum JumpPhase {
 @export var flash_duration: float = 0.3 # How long the flash lasts in seconds
 @export var debug_death_tiles: bool = true
 
+# Touch controls (web/mobile)
+@export_group("Touch Controls")
+@export var touch_controls_enabled: bool = true
+@export var touch_deadzone: float = 16.0
+@export var touch_tap_max_time: float = 0.18
+@export var touch_tap_max_distance: float = 12.0
+@export var touch_climb_threshold: float = 18.0
+@export var touch_jump_hold_time: float = 0.12
+
 # Jump system - simple UP key jumping
 @export var jump_power: float = 1.0 # Jump power multiplier
 
@@ -125,6 +134,86 @@ func _ready():
 	if white_flash_shader and animated_sprite:
 		animated_sprite.material = ShaderMaterial.new()
 		animated_sprite.material.shader = white_flash_shader
+
+func _input(event: InputEvent) -> void:
+	if not touch_controls_enabled:
+		return
+	if event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if touch_event.pressed:
+			touch_points[touch_event.index] = {
+				"start_pos": touch_event.position,
+				"current_pos": touch_event.position,
+				"start_time_ms": Time.get_ticks_msec()
+			}
+		else:
+			if touch_points.has(touch_event.index):
+				var point = touch_points[touch_event.index]
+				var duration_sec = float(Time.get_ticks_msec() - int(point.start_time_ms)) / 1000.0
+				var move_distance = (point.current_pos as Vector2).distance_to(point.start_pos as Vector2)
+				if touch_event.index == move_touch_index:
+					touch_active = false
+					move_touch_index = -1
+					_reset_touch_axes()
+				elif duration_sec <= touch_tap_max_time and move_distance <= touch_tap_max_distance:
+					touch_jump_queued = true
+					touch_jump_hold_timer = touch_jump_hold_time
+				touch_points.erase(touch_event.index)
+	elif event is InputEventScreenDrag:
+		var drag_event := event as InputEventScreenDrag
+		if touch_points.has(drag_event.index):
+			var point = touch_points[drag_event.index]
+			point.current_pos = drag_event.position
+			touch_points[drag_event.index] = point
+			if drag_event.index == move_touch_index:
+				touch_current_pos = drag_event.position
+				_update_touch_axes()
+			elif move_touch_index == -1:
+				var delta = (point.current_pos as Vector2) - (point.start_pos as Vector2)
+				if abs(delta.x) >= touch_deadzone or abs(delta.y) >= touch_climb_threshold:
+					move_touch_index = drag_event.index
+					touch_active = true
+					touch_start_pos = point.start_pos
+					touch_current_pos = point.current_pos
+					touch_start_time_ms = int(point.start_time_ms)
+					_update_touch_axes()
+
+func _update_touch_axes() -> void:
+	var delta = touch_current_pos - touch_start_pos
+	touch_horizontal_dir = 0.0
+	if abs(delta.x) >= touch_deadzone:
+		touch_horizontal_dir = 1.0 if delta.x > 0.0 else -1.0
+	touch_up_pressed = delta.y <= -touch_climb_threshold
+	touch_down_pressed = delta.y >= touch_climb_threshold
+
+func _reset_touch_axes() -> void:
+	touch_horizontal_dir = 0.0
+	touch_up_pressed = false
+	touch_down_pressed = false
+
+func update_touch_timers(delta: float) -> void:
+	if not touch_controls_enabled:
+		return
+	if touch_jump_hold_timer > 0.0:
+		touch_jump_hold_timer = max(0.0, touch_jump_hold_timer - delta)
+
+func _get_horizontal_input() -> float:
+	var axis = Input.get_axis("ui_left", "ui_right")
+	if touch_controls_enabled and touch_active and abs(touch_horizontal_dir) > 0.0:
+		axis = touch_horizontal_dir
+	return axis
+
+func _is_up_pressed() -> bool:
+	return Input.is_action_pressed("ui_up") or (touch_controls_enabled and touch_up_pressed)
+
+func _is_down_pressed() -> bool:
+	return Input.is_action_pressed("ui_down") or (touch_controls_enabled and touch_down_pressed)
+
+func _is_jump_just_pressed() -> bool:
+	return Input.is_action_just_pressed("ui_up") or (touch_controls_enabled and touch_jump_queued)
+
+func _is_jump_held() -> bool:
+	return Input.is_action_pressed("ui_up") or (touch_controls_enabled and touch_jump_hold_timer > 0.0)
 
 # State
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -208,6 +297,19 @@ var platform_ladder_pass_through = false # Flag for passing through platform-lad
 var platform_ladder_pass_timer = 0.0 # Timer for pass-through duration
 const PLATFORM_LADDER_PASS_DURATION = 0.15 # How long to allow pass-through (slightly shorter for snappier feel)
 
+# Touch control state
+var touch_active = false
+var move_touch_index: int = -1
+var touch_points: Dictionary = {}
+var touch_start_pos: Vector2 = Vector2.ZERO
+var touch_current_pos: Vector2 = Vector2.ZERO
+var touch_start_time_ms: int = 0
+var touch_horizontal_dir: float = 0.0
+var touch_up_pressed = false
+var touch_down_pressed = false
+var touch_jump_queued = false
+var touch_jump_hold_timer: float = 0.0
+
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
 @export var damage_immunity_duration_ms: int = 500
@@ -268,6 +370,7 @@ func _physics_process(delta: float) -> void:
 	
 	# Update platformer timers (coyote time, jump buffering)
 	update_platformer_timers(delta)
+	update_touch_timers(delta)
 	
 	# Apply gravity if not climbing
 	if not is_climbing:
@@ -327,7 +430,7 @@ func apply_gravity(delta: float) -> void:
 		if velocity.y > 0.0:
 			gravity_scale = fall_gravity_scale
 		# Variable jump height - cut jump if releasing early
-		elif not Input.is_action_pressed("ui_up") and velocity.y < 0.0:
+		elif not _is_jump_held() and velocity.y < 0.0:
 			gravity_scale = low_jump_gravity_scale
 		
 		velocity.y += gravity * gravity_scale * delta
@@ -337,7 +440,7 @@ func handle_movement(delta: float) -> void:
 	if _is_input_locked():
 		return
 		
-	var direction = Input.get_axis("ui_left", "ui_right")
+	var direction = _get_horizontal_input()
 	var current_speed = crouch_speed if is_crouching else speed
 	
 	# Handle horizontal movement
@@ -399,8 +502,9 @@ func process_inputs() -> void:
 func handle_jump_input() -> void:
 	"""Handle jump input - UP key while moving with buffering"""
 	# Check for UP key press and buffer it
-	if Input.is_action_just_pressed("ui_up"):
+	if _is_jump_just_pressed():
 		jump_buffer_timer = jump_buffer_time
+		touch_jump_queued = false
 	
 	# Try immediate jump if conditions are met
 	if jump_buffer_timer > 0.0:
@@ -484,7 +588,7 @@ func handle_crouch_input() -> void:
 		return
 	
 	# Check if down is pressed (alone or with left/right)
-	var down_pressed = Input.is_action_pressed("ui_down")
+	var down_pressed = _is_down_pressed()
 	
 	# If we're climbing and near a ladder, don't allow crouching to override climbing
 	if is_climbing and should_be_climbing():
@@ -507,7 +611,7 @@ func handle_crouch_input() -> void:
 
 func check_ceiling_clearance() -> void:
 	# Only check ceiling clearance if we're not already crouching due to input
-	var down_pressed = Input.is_action_pressed("ui_down")
+	var down_pressed = _is_down_pressed()
 	
 	# If we're not forced to crouch and not manually crouching, check for low ceiling
 	if not forced_crouch and not down_pressed:
@@ -590,12 +694,12 @@ func check_ladder_interaction() -> void:
 		ladder_at_player = player_tile_atlas in LADDER_TILES
 	
 	# Handle ladder interaction
-	if ladder_found and (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
+	if ladder_found and (_is_up_pressed() or _is_down_pressed()):
 		var is_ascending = (not is_on_floor()) and velocity.y < 0.0
 		# Special case: if we're standing ON TOP of platform-ladder and pressing down, don't start climbing
 		# Let the pass-through mechanism handle it instead
 		var should_prevent_climbing = false
-		if Input.is_action_pressed("ui_down"):
+		if _is_down_pressed():
 			# Check if we're standing directly on top of a platform-ladder tile
 			var check_pos = global_position + Vector2(0, 8) # Check 8 pixels below player center
 			var tile_pos = tilemap.local_to_map(tilemap.to_local(check_pos))
@@ -635,7 +739,7 @@ func check_platform_ladder_pass_through() -> void:
 	var tile_atlas_coords = tilemap.get_cell_atlas_coords(tile_pos)
 	
 	# Check if we're standing on platform-ladder and pressing down
-	if tile_atlas_coords == PLATFORM_LADDER_TILE and Input.is_action_pressed("ui_down"):
+	if tile_atlas_coords == PLATFORM_LADDER_TILE and _is_down_pressed():
 		if not platform_ladder_pass_through:
 			platform_ladder_pass_through = true
 			platform_ladder_pass_timer = 0.0
@@ -659,15 +763,15 @@ func handle_climbing(delta: float) -> void:
 	
 	# Handle vertical movement on ladder
 	var vertical_input = 0.0
-	if Input.is_action_pressed("ui_up"):
+	if _is_up_pressed():
 		vertical_input = -1.0
-	elif Input.is_action_pressed("ui_down"):
+	elif _is_down_pressed():
 		vertical_input = 1.0
 	
 	velocity.y = vertical_input * climb_speed
 	
 	# Handle horizontal movement while climbing
-	var horizontal_input = Input.get_axis("ui_left", "ui_right")
+	var horizontal_input = _get_horizontal_input()
 	if abs(horizontal_input) > 0:
 		# Pressing left or right makes you fall off the ladder
 		is_climbing = false

@@ -1,0 +1,57 @@
+## Godot ↔ Terminal Web Messaging (Unified)
+
+All Godot web exports that run inside the Crocoverse Terminal must use a single
+`postMessage` payload. The Terminal only accepts this generic shape.
+
+### Canonical payload
+
+```
+{
+  "type": "game_event",
+  "event": "collectibles" | "game_over",
+  "game_id": "snake_godot" | "pimpa_raka" | "<new_game_id>",
+  "time_seconds": 12.3,
+  "metrics": { ... }
+}
+```
+
+### Required fields
+
+- `type` must be `game_event`.
+- `event` is a short string describing the event.
+- `game_id` identifies the game for the Terminal.
+- `metrics` holds game-specific numbers.
+- `time_seconds` is optional but recommended.
+
+### Metrics per game
+
+- `snake_godot`: `{ "score": <number> }`
+- `pimpa_raka`: `{ "gems": <number>, "diamonds": <number> }`
+
+### Godot → Browser
+
+Use Godot’s `JavaScriptBridge.eval()` to call:
+
+`window.parent.postMessage(payload, window.location.origin);`
+
+Using `window.location.origin` is required because the Terminal iframe listener
+rejects any other origin.
+
+### Frontend listener (Terminal)
+
+The Terminal uses `IframeGame` and only forwards messages when:
+
+- `event.origin === window.location.origin`
+- `event.source === iframe.contentWindow`
+- `event.data` is a plain object
+
+References in the frontend repo:
+
+- `src/components/terminal/IframeGame.tsx`
+- `src/app/terminal/CrocTerminal.tsx`
+
+### Adding a new game
+
+- Pick a unique `game_id`.
+- Emit only the canonical payload.
+- Add a handler in `CrocTerminal.tsx` to interpret its `metrics`.

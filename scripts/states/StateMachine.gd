@@ -55,3 +55,8 @@ func _unhandled_input(event: InputEvent):
 	"""Handle input for current state"""
 	if current_state:
 		current_state.handle_input(event)
+
+func get_current_state_name() -> String:
+	if current_state:
+		return current_state.name
+	return ""

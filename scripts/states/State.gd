@@ -34,3 +34,10 @@ func physics_update(_delta: float) -> void:
 # Called when input is received while in this state
 func handle_input(_event: InputEvent) -> void:
 	pass
+
+# Helper to request a state transition via the state machine
+func transition_to(state_name: String) -> void:
+	if not state_machine:
+		push_error("StateMachine not set for state: " + name)
+		return
+	state_machine.change_state(state_name)

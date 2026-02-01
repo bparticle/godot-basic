@@ -4,7 +4,7 @@ extends Node2D
 @export var initial_room: String = "room_0"  # Single source of truth for starting room
 @export var respawn_delay: float = 1.0
 @export var game_over_delay: float = 1.0
-@export var web_game_over_screen_duration: float = 1.5
+@export var web_game_over_screen_duration: float = 2.5
 @export var game_over_texture_path: String = "res://assets/sprites/game-over.png"
 
 @export_group("Visual Settings")

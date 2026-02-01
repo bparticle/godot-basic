@@ -1,0 +1,168 @@
+---
+description: Godot web export should reuse shared runtime files
+alwaysApply: true
+---
+
+# Godot Web Export Shared Runtime (Generic Setup)
+
+Use a shared runtime for all web exports to avoid duplicating large binaries and
+to standardize hosting. This rule applies to any game in this environment.
+
+## Shared Runtime Contract
+
+All games assume a central `_GODOT` folder exists **one level above** each game
+export folder, containing:
+- `godot.wasm`
+- `godot.audio.worklet.js`
+- `godot.audio.position.worklet.js`
+
+No game-specific folder should contain its own `*.wasm` or audio worklet files.
+
+## Folder Layout (Expected)
+
+Example layout:
+
+```
+exports/
+  _GODOT/
+    godot.wasm
+    godot.audio.worklet.js
+    godot.audio.position.worklet.js
+  game-a/
+    game-a.html
+    game-a.js
+    game-a.pck
+    icons/ or *.png
+  game-b/
+    game-b.html
+    game-b.js
+    game-b.pck
+```
+
+## HTML Shell Requirements (Custom Shell)
+
+Use a custom HTML shell so exported files always point to the shared runtime.
+The shell must:
+- Include `$GODOT_URL` and `$GODOT_CONFIG` placeholders.
+- Include splash UI markup (so the boot splash shows).
+- Override `GODOT_CONFIG.executable` to `../_GODOT/godot`.
+- Ensure `mainPack` is set (usually `<game>.pck`).
+- Rewrite `fileSizes` so it includes `../_GODOT/godot.wasm` and **does not**
+  reference `<game>.wasm` in the game folder.
+- Initialize the engine with the shared wasm and preload the `.pck`.
+
+### Working initialization pattern (shared runtime)
+
+```
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_SCRIPT = "$GODOT_URL";
+const baseName = GODOT_SCRIPT.replace(/\.js$/, "");
+const mainPack = GODOT_CONFIG.mainPack || (baseName + ".pck");
+const sharedWasm = "../_GODOT/godot.wasm";
+
+GODOT_CONFIG.mainPack = mainPack;
+GODOT_CONFIG.executable = "../_GODOT/godot";
+
+if (!GODOT_CONFIG.fileSizes) {
+  GODOT_CONFIG.fileSizes = {};
+}
+const localWasm = baseName + ".wasm";
+if (GODOT_CONFIG.fileSizes[localWasm]) {
+  GODOT_CONFIG.fileSizes[sharedWasm] = GODOT_CONFIG.fileSizes[localWasm];
+  delete GODOT_CONFIG.fileSizes[localWasm];
+} else if (!GODOT_CONFIG.fileSizes[sharedWasm]) {
+  GODOT_CONFIG.fileSizes[sharedWasm] = 0;
+}
+
+const engine = new Engine(GODOT_CONFIG);
+Promise.all([
+  engine.init(sharedWasm),
+  engine.preloadFile(mainPack),
+]).then(() => {
+  return engine.start({
+    args: ["--main-pack", mainPack],
+    canvas: document.getElementById("canvas"),
+  });
+});
+```
+
+## Export Preset Requirements (Godot 4.x)
+
+For each game:
+- Set **Html / Custom Html Shell** to the shared custom shell file.
+- Keep **Export Path** under a game-specific folder (e.g. `export/my_game/my_game.html`).
+- Leave threads disabled unless your host supports COOP/COEP.
+- Preset name does not matter; only the Web platform and the shell path do.
+
+### Recommended preset export path
+
+Use a nested folder so “Export All” produces the correct layout:
+
+```
+export/<game>/<game>.html
+```
+
+## Automated Cleanup (Export Plugin)
+
+Add an `EditorExportPlugin` that runs on web exports and removes per-game runtime
+artifacts from the export directory:
+- `*.wasm`
+- `*.wasm.debug`
+- `*.audio.worklet.js`
+- `*.audio.position.worklet.js`
+
+This ensures “Export All” always yields only the allowed files per game.
+
+Minimal plugin outline:
+
+```
+@tool
+extends EditorExportPlugin
+
+func _export_begin(features: PackedStringArray, _is_debug: bool, path: String, _flags: int) -> void:
+	# Store export dir only for web exports
+	pass
+
+func _export_end() -> void:
+	# Delete *.wasm and audio worklets from export dir
+	pass
+```
+
+Enable the plugin in **Project Settings → Plugins** (or add it under
+`[editor_plugins]` in `project.godot`).
+
+## Files to Keep Per Game
+
+Inside each game export folder, keep only:
+- `*.html`
+- `*.js`
+- `*.pck`
+- images (`*.png`, icons)
+
+Everything else is centralized in `_GODOT`.
+
+## Git Ignore Guidance
+
+Do not ignore the entire export folder. Only ignore runtime artifacts:
+- `**/*.wasm`
+- `**/*.wasm.debug`
+
+This keeps HTML/JS/PCK and images tracked while preventing per-game runtime files.
+
+## Step-by-Step Setup for New Games
+
+1) **Add a custom HTML shell** (e.g. `res://web_export_shell.html`) that:
+   - Includes splash markup and uses the shared-runtime init pattern above.
+2) **Add the export cleanup plugin** under `res://addons/<plugin>/` and enable it.
+3) **Configure the Web preset**:
+   - `Html / Custom Html Shell` → your shell file.
+   - `Export Path` → `export/<game>/<game>.html`.
+4) **Ensure shared runtime exists** at `export/_GODOT/` with the three runtime files.
+5) **Export** using the Web preset (Export Project or Export All).
+
+## When Runtime Changes
+
+If Godot version or web export settings change:
+- Regenerate the runtime once.
+- Replace the shared files in `_GODOT`.
+- Update any HTML shells if `fileSizes` or config structure changes.

@@ -166,10 +166,14 @@ func send_collectibles_to_host(gems: int, diamonds: int, time_seconds: float) ->
 	if not OS.has_feature("web"):
 		return
 	var payload = {
-		"type": "pimpa_raka_collectibles",
-		"gems": gems,
-		"diamonds": diamonds,
-		"time_seconds": time_seconds
+		"type": "game_event",
+		"event": "collectibles",
+		"game_id": "pimpa_raka",
+		"time_seconds": time_seconds,
+		"metrics": {
+			"gems": gems,
+			"diamonds": diamonds
+		}
 	}
 	var json = JSON.stringify(payload)
 	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
@@ -185,10 +189,14 @@ func send_game_over_to_host() -> void:
 	if not OS.has_feature("web"):
 		return
 	var payload = {
-		"type": "pimpa_raka_game_over",
-		"gems": small_gems,
-		"diamonds": large_gems,
-		"time_seconds": get_run_elapsed_seconds()
+		"type": "game_event",
+		"event": "game_over",
+		"game_id": "pimpa_raka",
+		"time_seconds": get_run_elapsed_seconds(),
+		"metrics": {
+			"gems": small_gems,
+			"diamonds": large_gems
+		}
 	}
 	var json = JSON.stringify(payload)
 	var js = "window.parent.postMessage(" + json + ", window.location.origin);"

@@ -28,6 +28,9 @@ func update(delta: float):
 	if parent.is_dead:
 		return
 	attack_timer += delta
+	# Face the player while attacking (so the lunge looks correct)
+	if animated_sprite and parent.target:
+		animated_sprite.flip_h = parent.target.global_position.x < parent.global_position.x
 	
 	# Perform attack once during the attack duration
 	if not has_attacked and attack_timer >= attack_duration * 0.5:
@@ -37,8 +40,19 @@ func update(delta: float):
 func physics_update(delta: float):
 	if parent.is_dead:
 		return
-	# Stop moving during attack
-	parent.velocity.x = 0
+	# Respect edges and walls: never run off the platform or push into a wall/ladder
+	if parent.should_turn_around():
+		parent.turn_around()
+		parent.velocity.x = parent.walk_direction * parent.speed * parent.attack_speed_multiplier
+	elif parent.is_on_wall() and parent.is_wall_ignorable():
+		# Stuck against player/collectible/ladder - move in walk_direction to avoid left-right lock
+		parent.velocity.x = parent.walk_direction * parent.speed * parent.attack_speed_multiplier
+	elif parent.target:
+		var to_player = parent.target.global_position.x - parent.global_position.x
+		var dir = sign(to_player) if abs(to_player) > 1.0 else parent.walk_direction
+		parent.velocity.x = dir * parent.speed * parent.attack_speed_multiplier
+	else:
+		parent.velocity.x = 0
 	
 	# Check for transitions
 	check_transitions()
@@ -59,23 +73,18 @@ func perform_attack():
 		parent._damage_player()
 
 func check_transitions():
-	# Check if attack duration is over
-	if attack_timer >= attack_duration:
-		# Check if player is still in range
-		if parent.get_distance_to_target() <= parent.attack_range:
-			# Stay in attack state for another attack
-			transition_to("attack")
-		else:
-			# Player moved away, go back to chase
-			transition_to("chase")
-		return
-	
-	# Check if player moved out of attack range
-	if parent.get_distance_to_target() > parent.attack_range:
-		transition_to("chase")
-		return
-	
-	# Check if player moved out of detection range
+	# Leave attack only when player is out of detection range or no longer on same level
 	if parent.get_distance_to_target() > parent.detection_range:
 		transition_to("idle")
 		return
+	
+	# Player left the same level (e.g. jumped to another platform) -> go back to chase/patrol
+	if not parent.is_player_on_same_level():
+		transition_to("chase")
+		return
+	
+	# Stay in attack: same level and in sight, keep chasing toward the player
+	# (attack timer and perform_attack handle the actual damage when in range)
+	if attack_timer >= attack_duration:
+		transition_to("attack")
+	return

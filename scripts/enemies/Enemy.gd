@@ -25,6 +25,13 @@ const PLATFORM_END_TILES = [
 	Vector2i(0, 3)
 ]
 
+# Ladder / passthrough tiles: enemy walks through these (no turn). Same as player ladder tiles + (5,3).
+const PASSTHROUGH_TILES = [
+	Vector2i(3, 2),
+	Vector2i(5, 2),
+	Vector2i(5, 3)
+]
+
 @export_group("Enemy Stats")
 @export var speed: float = 18.0
 @export var detection_range: float = 100.0
@@ -35,6 +42,8 @@ const PLATFORM_END_TILES = [
 
 @export_group("AI Behavior")
 @export var chase_speed_multiplier: float = 1.2
+@export var attack_speed_multiplier: float = 1.5  # When player in sight (attack state), move faster toward them
+@export var same_level_y_threshold: float = 20.0  # Max vertical distance for "same platform"; attack only when player on floor (not on ladder/jumping)
 @export var idle_wait_time: float = 2.0
 @export var attack_cooldown: float = 1.0
 
@@ -104,6 +113,8 @@ func _ready():
 	# Start state machine in idle
 	if state_machine:
 		state_machine.change_state("idle")
+		# Run state physics before this node so attack state can set safe velocity before move_and_slide (avoid stepping off edges)
+		state_machine.set_physics_process_priority(50)
 
 func _physics_process(delta: float):
 	if is_dead:
@@ -119,7 +130,8 @@ func _physics_process(delta: float):
 	_check_player_collision()
 	
 	# Safety: if we still detect edge/wall after moving (e.g. we slipped), turn and stop horizontal movement this frame
-	if should_turn_around():
+	# (Skip in attack state - state already set safe velocity before we moved)
+	if state_machine.get_current_state_name() != "attack" and should_turn_around():
 		turn_around()
 		velocity.x = 0
 
@@ -217,6 +229,16 @@ func get_direction_to_target() -> Vector2:
 		return Vector2.ZERO
 	return (target.global_position - global_position).normalized()
 
+func is_player_on_same_level() -> bool:
+	"""True if the player is on the same platform: on the floor (not climbing/jumping) and within vertical threshold."""
+	if not target:
+		return false
+	# Ignore player when they're on a ladder or in the air - don't trigger attack until they're on the platform
+	if not target.is_on_floor():
+		return false
+	var dy = abs(target.global_position.y - global_position.y)
+	return dy <= same_level_y_threshold
+
 func get_tilemap() -> TileMapLayer:
 	if not room_manager or not room_manager.current_room_instance:
 		return null
@@ -258,9 +280,10 @@ func no_floor_ahead() -> bool:
 	return result.is_empty()
 
 func is_wall_ignorable() -> bool:
-	"""True if we're touching a wall and every collision is with the player or a collectible (don't turn)."""
+	"""True if we're touching a wall and every collision is player, collectible, or passthrough tile (don't turn)."""
 	if not is_on_wall():
 		return false
+	var tilemap = get_tilemap()
 	for i in get_slide_collision_count():
 		var col = get_slide_collision(i)
 		var collider = col.get_collider()
@@ -270,6 +293,12 @@ func is_wall_ignorable() -> bool:
 			continue
 		if collider.is_in_group("collectible"):
 			continue
+		# Tilemap: if we hit a ladder/passthrough tile (e.g. (5,3)), walk through it
+		if tilemap and collider == tilemap:
+			var hit_pos = col.get_position()
+			var atlas = get_tile_atlas_at_position(hit_pos)
+			if atlas in PASSTHROUGH_TILES:
+				continue
 		return false
 	return get_slide_collision_count() > 0
 

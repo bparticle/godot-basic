@@ -40,7 +40,7 @@ func check_transitions():
 		transition_to("idle")
 		return
 	
-	# Check if player is in attack range
-	if parent.get_distance_to_target() <= parent.attack_range:
+	# Attack phase as soon as we see the player on the same level (chase toward them with attack animation)
+	if parent.is_player_on_same_level():
 		transition_to("attack")
 		return

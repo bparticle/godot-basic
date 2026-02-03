@@ -11,18 +11,25 @@ func enter():
 	parent = get_parent().get_parent()  # StateMachine -> Enemy
 	animated_sprite = parent.get_node("AnimatedSprite2D")
 	movement_component = parent.get_node("MovementComponent")
+	
+	# Play walk animation
+	if animated_sprite:
+		animated_sprite.play("walk")
+	# Keep current walk_direction; flipping is handled only by obstacle/edge in physics_update via turn_around()
 
 func update(delta: float):
-	# Handle sprite flipping
-	if parent.velocity.x < 0:
-		animated_sprite.flip_h = true
-	elif parent.velocity.x > 0:
-		animated_sprite.flip_h = false
+	# Face movement direction
+	if animated_sprite:
+		animated_sprite.flip_h = parent.walk_direction < 0
 
 func physics_update(delta: float):
-	# Move towards target
-	var direction = parent.get_direction_to_target()
-	parent.velocity.x = direction.x * parent.speed
+	if parent.is_dead:
+		return
+	# Check for edge/wall/ladder BEFORE setting velocity so we never step off the platform
+	if parent.should_turn_around():
+		parent.turn_around()
+	# Walk on platforms; turn only at walls/edges/ladders
+	parent.velocity.x = parent.walk_direction * parent.speed * parent.chase_speed_multiplier
 	
 	# Check for transitions
 	check_transitions()

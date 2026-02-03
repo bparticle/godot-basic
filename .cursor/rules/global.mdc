@@ -3,6 +3,11 @@
 # This file configures Cursor to automatically reference the project framework documentation
 # for all development tasks to ensure consistency with established patterns and conventions.
 
+# Shared Godot standards live at:
+# - C:\Users\bruno\dev\Godot\.cursor\rules\godot-game-structure.mdc
+# - C:\Users\bruno\dev\Godot\.cursor\rules\godot-web-export-shared-runtime.mdc
+# - C:\Users\bruno\dev\Godot\.cursor\rules\godot-terminal-bridge.mdc
+
 # Framework Documentation Reference
 # CRITICAL: Always reference PROJECT_FRAMEWORK_DOCUMENTATION.md before making any changes
 # This document contains the complete framework architecture, patterns, and conventions.

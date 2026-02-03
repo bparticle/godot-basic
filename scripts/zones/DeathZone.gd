@@ -20,8 +20,7 @@ func _on_body_entered(body):
 	if not is_active:
 		return
 	
-	# Check if the body is the player
+	# Check if the body is the player - fell out of level (pit, etc.): respawn at checkpoint
 	if body.is_in_group("player"):
-		# Player takes damage
-		if health_manager:
-			health_manager.take_damage(1)
+		if health_manager and health_manager.has_method("request_respawn_from_fall"):
+			health_manager.request_respawn_from_fall()

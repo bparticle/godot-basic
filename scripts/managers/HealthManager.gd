@@ -19,7 +19,7 @@ var large_gems: int = 0
 var total_score: int = 0
 var has_sent_collectibles: bool = false
 var run_start_ms: int = 0
-@export var damage_cooldown_ms: int = 200
+@export var damage_cooldown_ms: int = 500  # Safety: max one life lost per half second from any source
 var last_damage_ms: int = -100000
 @export var life_lost_stream: AudioStream
 @export var life_lost_stream_path: String = "res://assets/audio/sfx/SFX 16.wav"
@@ -59,7 +59,7 @@ func reset_health():
 	set_has_key(false)
 
 func take_damage(amount: int = 1):
-	"""Player takes damage and loses lives"""
+	"""Player takes damage and loses lives. No respawn - only invulnerability + blink on the player."""
 	if Time.get_ticks_msec() < last_damage_ms + damage_cooldown_ms:
 		return
 	if current_lives <= 0:
@@ -74,23 +74,28 @@ func take_damage(amount: int = 1):
 	
 	if current_lives <= 0:
 		trigger_game_over()
-	else:
-		player_died.emit()
+	# Do NOT emit player_died here - respawn only when falling out of the level (request_respawn_from_fall)
 
 func take_damage_no_respawn(amount: int = 1):
-	"""Player takes damage without triggering a respawn (e.g., spikes)."""
+	"""Same as take_damage - no respawn. Kept for API compatibility (e.g. spikes)."""
+	take_damage(amount)
+
+func request_respawn_from_fall():
+	"""Called when the player has fallen out of the level (e.g. pit). Lose one life and respawn at checkpoint."""
 	if current_lives <= 0:
+		trigger_game_over()
 		return
-	
 	var previous_lives = current_lives
-	current_lives = max(0, current_lives - amount)
+	current_lives = max(0, current_lives - 1)
+	last_damage_ms = Time.get_ticks_msec()
 	health_changed.emit(current_lives, MAX_LIVES)
 	if current_lives < previous_lives and current_lives > 0:
 		_play_life_lost_sfx()
-	
-	# Check if game over should be triggered
+	# Only respawn trigger in the game - Game moves player to checkpoint
+	player_died.emit()
 	if current_lives <= 0:
-		trigger_game_over()
+		# Just respawned with 0 lives; next fall or damage will trigger game over
+		pass
 
 func heal(amount: int = 1):
 	"""Restore lives (for pickups, etc.)"""
@@ -198,6 +203,29 @@ func send_game_over_to_host() -> void:
 			"diamonds": large_gems
 		}
 	}
+	var json = JSON.stringify(payload)
+	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
+	JavaScriptBridge.eval(js)
+	has_sent_collectibles = true
+
+func send_exit_to_host() -> void:
+	"""Send current run stats to host when user exits (e.g. Exit button). Only sends if not already sent (game_over or collectibles)."""
+	if has_sent_collectibles:
+		print("[EXIT_DEBUG] HealthManager: send_exit_to_host skipped (already sent)")
+		return
+	if not OS.has_feature("web"):
+		return
+	var payload = {
+		"type": "game_event",
+		"event": "exit",
+		"game_id": "pimpa_raka",
+		"time_seconds": get_run_elapsed_seconds(),
+		"metrics": {
+			"gems": small_gems,
+			"diamonds": large_gems
+		}
+	}
+	print("[EXIT_DEBUG] HealthManager: sending exit payload gems=", small_gems, " diamonds=", large_gems)
 	var json = JSON.stringify(payload)
 	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
 	JavaScriptBridge.eval(js)

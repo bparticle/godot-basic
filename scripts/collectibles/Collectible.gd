@@ -16,6 +16,7 @@ var tween: Tween
 @onready var health_manager = get_node("/root/HealthManager")
 
 func _ready():
+	add_to_group("collectible")
 	# Store original Y position
 	original_y = global_position.y
 	

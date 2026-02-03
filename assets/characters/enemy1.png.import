@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4m4gcstvkmg7"
-path="res://.godot/imported/pimpa-export.png-e7a0a6715d8ee5d4cfa59420b5a7c916.ctex"
+uid="uid://cwwmbiyaxfxb6"
+path="res://.godot/imported/enemy1.png-d30b58d8b6092097e4894c317c29a942.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/pimpa-export.png"
-dest_files=["res://.godot/imported/pimpa-export.png-e7a0a6715d8ee5d4cfa59420b5a7c916.ctex"]
+source_file="res://assets/characters/enemy1.png"
+dest_files=["res://.godot/imported/enemy1.png-d30b58d8b6092097e4894c317c29a942.ctex"]
 
 [params]
 

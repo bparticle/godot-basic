@@ -1,5 +1,6 @@
-[gd_scene load_steps=9 format=4 uid="uid://sn0plh0kl3ba"]
+[gd_scene load_steps=10 format=4 uid="uid://sn0plh0kl3ba"]
 
+[ext_resource type="TileSet" uid="uid://xs6rof6jga3" path="res://resources/tilesets/background_tileset.tres" id="1_lt44h"]
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_tileset"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="2_flag_tex"]
 [ext_resource type="Script" uid="uid://t7fgnontnhqm" path="res://scripts/doors/Door.gd" id="3_door_script"]
@@ -15,12 +16,20 @@ size = Vector2(137, 20)
 
 [node name="Room0" type="Node2D"]
 
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -66.0
-offset_top = -277.0
-offset_right = 531.0
-offset_bottom = 742.0
+[node name="Parallax2D" type="Parallax2D" parent="."]
+scroll_scale = Vector2(0.9, 0.9)
+
+[node name="ColorRect" type="ColorRect" parent="Parallax2D"]
+offset_left = -100.0
+offset_top = -323.0
+offset_right = 462.0
+offset_bottom = 772.0
 color = Color(0.101961, 0.101961, 0.101961, 1)
+
+[node name="TileMapLayer" type="TileMapLayer" parent="Parallax2D"]
+position = Vector2(-58, 224)
+tile_map_data = PackedByteArray("AAARAAsAAQAAAAMAAAAPAAgAAQAAAAMAAAAeAAoAAQADAAMAAAAgAAMAAQABAAMAAAAhABEAAQADAAMAAAAWABMAAQABAAMAAAALABAAAQABAAMAAAAEAAUAAQAAAAMAAAAFAAQAAQACAAAAAAAEAAQAAQABAAAAAAACAAIAAQABAAMAAAAAAA4AAQAAAAMAAAATAAwAAQACAAAAAAALAAkAAQACAAAAAAAFAAgAAQACAAAAAAAGAAsAAQACAAAAAAABAAQAAQABAAAAAAAhAAgAAQADAAAAAAAhAAUAAQAEAAAAAAAhAA0AAQABAAAAAAAgABMAAQAAAAAAAAAXABMAAQAEAAAAAAAKABYAAQADAAAAAAALABIAAQAAAAAAAAAWABcAAQAEAAAAAAAhABYAAQABAAAAAAAiABEAAQABAAAAAAAAABUAAQAEAAAAAAAAAA8AAQAAAAAAAAAqABwAAQACAAAAAAAYACMAAQAEAAAAAAAaACkAAQAEAAAAAAAbACkAAQAAAAAAAAAcACwAAQABAAAAAAA3ADAAAQACAAAAAAAtACkAAQABAAAAAAAvACUAAQADAAAAAAAnABEAAQADAAAAAAAnAA0AAQAEAAAAAAAzAAwAAQAEAAAAAAAzAAkAAQAAAAAAAAAyAAkAAQADAAAAAAADACwAAQABAAAAAAABADEAAQAEAAAAAAACADMAAQADAAAAAAADADQAAQABAAAAAAAbADIAAQACAAAAAAAGABoAAQAFAAAAAAAGABsAAQAFAAEAAAAGABwAAQAFAAIAAAAVACcAAQAFAAAAAAAVACgAAQAFAAEAAAAVACkAAQAFAAIAAAApACMAAQAAAAIAAAAsACMAAQABAAIAAAAqACgAAQABAAAAAAAoACoAAQABAAAAAAApACoAAQABAAAAAAAfACMAAQACAAAAAAAcACQAAQAEAAAAAAA2ACIAAQAEAAAAAAAzAC0AAQACAAAAAAA2AC0AAQAAAAIAAAAGAP3/AQABAAAAAAABAP3/AQADAAAAAAAaAAoAAQAEAAAAAAAeAAwAAQADAAAAAAARAAoAAQADAAAAAAAVABAAAQABAAAAAAAeABAAAQABAAAAAAA=")
+tile_set = ExtResource("1_lt44h")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="."]
 position = Vector2(-19, -21)

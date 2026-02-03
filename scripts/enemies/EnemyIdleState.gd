@@ -7,31 +7,31 @@ var parent: Enemy
 var animated_sprite: AnimatedSprite2D
 var movement_component: MovementComponent
 
-# Patrol variables
-var patrol_timer: float = 0.0
-var patrol_duration: float = 2.0
-var patrol_direction: float = 1.0
-
 func enter():
 	parent = get_parent().get_parent()  # StateMachine -> Enemy
 	animated_sprite = parent.get_node("AnimatedSprite2D")
 	movement_component = parent.get_node("MovementComponent")
 	
-	# Start patrol timer
-	patrol_timer = 0.0
-	patrol_direction = 1.0 if RNG.randf() > 0.5 else -1.0
+	# Play idle animation
+	if animated_sprite:
+		animated_sprite.play("idle")
+	
+	# Random starting direction; turn_around() handles walls/edges/ladders
+	parent.walk_direction = 1.0 if RNG.randf() > 0.5 else -1.0
 
 func update(delta: float):
-	patrol_timer += delta
-	
-	# Change direction periodically
-	if patrol_timer >= patrol_duration:
-		patrol_timer = 0.0
-		patrol_direction *= -1.0
+	# Face movement direction
+	if animated_sprite:
+		animated_sprite.flip_h = parent.walk_direction < 0
 
 func physics_update(delta: float):
-	# Simple patrol movement
-	parent.velocity.x = patrol_direction * parent.speed * 0.5  # Slower patrol speed
+	if parent.is_dead:
+		return
+	# Check for edge/wall/ladder BEFORE setting velocity so we never step off the platform
+	if parent.should_turn_around():
+		parent.turn_around()
+	# Walk on platforms; turn only at walls/edges/ladders
+	parent.velocity.x = parent.walk_direction * parent.speed * 0.5  # Slower patrol speed
 	
 	# Check for transitions
 	check_transitions()

@@ -8,6 +8,8 @@ alwaysApply: true
 Use a shared runtime for all web exports to avoid duplicating large binaries and
 to standardize hosting. This rule applies to any game in this environment.
 
+Authoritative version: `C:\Users\bruno\dev\Godot\.cursor\rules\godot-web-export-shared-runtime.mdc`
+
 ## Shared Runtime Contract
 
 All games assume a central `_GODOT` folder exists **one level above** each game

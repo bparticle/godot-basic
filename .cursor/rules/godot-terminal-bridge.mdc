@@ -3,6 +3,8 @@
 All Godot web exports that run inside the Crocoverse Terminal must use a single
 `postMessage` payload. The Terminal only accepts this generic shape.
 
+Authoritative version: `C:\Users\bruno\dev\Godot\.cursor\rules\godot-terminal-bridge.mdc`
+
 ### Canonical payload
 
 ```
@@ -54,4 +56,4 @@ References in the frontend repo:
 
 - Pick a unique `game_id`.
 - Emit only the canonical payload.
-- Add a handler in `CrocTerminal.tsx` to interpret its `metrics`.
+- Define a `godot_game` node in the frontend using that `game_id`.

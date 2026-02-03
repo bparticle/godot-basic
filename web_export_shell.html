@@ -79,6 +79,15 @@
   </div>
   <script src="$GODOT_URL"></script>
   <script>
+    // Let the host request exit so the game can send run stats before the iframe is closed
+    window.__hostRequestedExit = false;
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'host_request' && e.data.action === 'request_exit') {
+        console.log('[EXIT_DEBUG] Godot shell: received request_exit, setting __hostRequestedExit = true');
+        window.__hostRequestedExit = true;
+      }
+    });
+
     const GODOT_CONFIG = $GODOT_CONFIG;
     const GODOT_SCRIPT = "$GODOT_URL";
     const baseName = GODOT_SCRIPT.replace(/\.js$/, "");

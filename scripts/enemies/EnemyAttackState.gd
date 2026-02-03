@@ -16,11 +16,17 @@ func enter():
 	animated_sprite = parent.get_node("AnimatedSprite2D")
 	movement_component = parent.get_node("MovementComponent")
 	
+	# Play attack (mouth open) animation
+	if animated_sprite:
+		animated_sprite.play("attack")
+	
 	# Reset attack state
 	attack_timer = 0.0
 	has_attacked = false
 
 func update(delta: float):
+	if parent.is_dead:
+		return
 	attack_timer += delta
 	
 	# Perform attack once during the attack duration
@@ -29,6 +35,8 @@ func update(delta: float):
 		has_attacked = true
 
 func physics_update(delta: float):
+	if parent.is_dead:
+		return
 	# Stop moving during attack
 	parent.velocity.x = 0
 	
@@ -37,15 +45,18 @@ func physics_update(delta: float):
 
 func perform_attack():
 	"""Perform the actual attack on the player"""
-	if not parent.target:
+	if not parent.target or parent.is_dead:
 		return
-	
+	# Don't damage if player is on top of us (stomp) - only damage on side contact
+	if parent._is_stomp(parent.target):
+		return
+	# Don't damage if player center is above our center (player on top)
+	if parent.target.global_position.y < parent.global_position.y - 8:
+		return
 	# Check if target is still in range
 	if parent.get_distance_to_target() <= parent.attack_range:
-		# Deal damage to player
-		var health_manager = get_node("/root/HealthManager")
-		if health_manager:
-			health_manager.take_damage(parent.attack_damage)
+		# Single source of damage: _damage_player notifies player first, then take_damage (so death jump/tile work)
+		parent._damage_player()
 
 func check_transitions():
 	# Check if attack duration is over

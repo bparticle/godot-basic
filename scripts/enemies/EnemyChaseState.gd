@@ -17,12 +17,12 @@ func enter():
 		animated_sprite.play("walk")
 	# Keep current walk_direction; flipping is handled only by obstacle/edge in physics_update via turn_around()
 
-func update(delta: float):
+func update(_delta: float):
 	# Face movement direction
 	if animated_sprite:
 		animated_sprite.flip_h = parent.walk_direction < 0
 
-func physics_update(delta: float):
+func physics_update(_delta: float):
 	if parent.is_dead:
 		return
 	# Check for edge/wall/ladder BEFORE setting velocity so we never step off the platform

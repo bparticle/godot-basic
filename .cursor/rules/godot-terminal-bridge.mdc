@@ -10,7 +10,7 @@ Authoritative version: `C:\Users\bruno\dev\Godot\.cursor\rules\godot-terminal-br
 ```
 {
   "type": "game_event",
-  "event": "collectibles" | "game_over",
+  "event": "collectibles" | "game_over" | "exit",
   "game_id": "snake_godot" | "pimpa_raka" | "<new_game_id>",
   "time_seconds": 12.3,
   "metrics": { ... }
@@ -52,8 +52,24 @@ References in the frontend repo:
 - `src/components/terminal/IframeGame.tsx`
 - `src/app/terminal/CrocTerminal.tsx`
 
+### Host → Godot: request exit
+
+Before closing the iframe, the host posts `{ "type": "host_request", "action": "request_exit" }`.
+
+**Implementation:**
+1. In `web_export_shell.html`, set `window.__hostRequestedExit = true` when this message is received.
+2. In GDScript `_process()` (web only), poll with a **truthy check**:
+   ```gdscript
+   var flag_value = JavaScriptBridge.eval("window.__hostRequestedExit")
+   if flag_value:
+       JavaScriptBridge.eval("window.__hostRequestedExit = false")
+       send_exit_to_host()
+   ```
+   **IMPORTANT**: Use `if flag_value:` (truthy), NOT `if flag_value == true:`. The return type from `JavaScriptBridge.eval()` doesn't match GDScript's `true` exactly, causing strict equality to always fail.
+
 ### Adding a new game
 
 - Pick a unique `game_id`.
 - Emit only the canonical payload.
+- Implement the exit flow above.
 - Define a `godot_game` node in the frontend using that `game_id`.

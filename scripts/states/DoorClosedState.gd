@@ -14,7 +14,7 @@ func enter():
 	if animated_sprite:
 		animated_sprite.play("closed")
 
-func update(delta: float):
+func update(_delta: float):
 	# Check for player interaction
 	check_player_interaction()
 

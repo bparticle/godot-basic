@@ -1,0 +1,72 @@
+feat: platformer damage system, enemy AI, and respawn-only-on-fall
+
+## Damage & respawn (player / HealthManager / DeathZone)
+
+- Respawn only when leaving the playable area: take_damage() no longer
+  emits player_died; respawn is triggered only by request_respawn_from_fall().
+- DeathZone (pits): calls request_respawn_from_fall() so falling into a pit
+  costs one life and respawns at last checkpoint.
+- Death/spike tiles (DEATH_TILES): touching these now calls
+  request_respawn_from_fall() instead of take_damage(), so the player
+  respawns at the last checkpoint and does not get stuck losing lives
+  repeatedly. Added (1,0) to DEATH_TILES; list includes (0,1), (1,0), (1,1),
+  (6,0), (6,1), (7,2).
+- After any damage: 2s invulnerability and blink (platformer standard).
+  Blink toggles sprite visibility every 0.08s during invulnerability.
+- Enemies respect player i-frames: _damage_player() skips if
+  get_damage_immunity_remaining_ms() > 0. Respawn grants brief invincibility.
+- Non-fatal enemy hit: small knockback; fatal enemy hit: damage jump +
+  death_tile animation before game over.
+- HealthManager: damage_cooldown_ms 500; request_respawn_from_fall() for
+  fall/death-tile respawn; at 0 lives fall triggers game_over().
+
+## Enemy AI (Enemy.gd, states)
+
+- State machine: Idle → Chase (in range) → Attack (in attack range); turn
+  only at real walls and platform edges, not at ladders or collectibles.
+- Single source of damage: only Attack state calls _damage_player() (one hit
+  per attack); collision handles stomp only (no side-contact damage).
+- Notify player before take_damage: on_damaged_by_enemy(pos) so death
+  jump and death_tile animation work when killed by enemy.
+- Dynamic movement: is_wall_ignorable() — do not turn when the only
+  collision is player or collectible (enemy walks past when player moves).
+- Turn-around cooldown (0.5s) and tighter lookahead (edge/obstacle offset
+  4px) to avoid flip-flop and turn at the actual edge.
+- Removed LADDER_TILES and ladder_or_obstacle_ahead(); enemy ignores
+  ladders and gems for movement space.
+
+## Collectibles
+
+- Collectible.gd: add_to_group("collectible") so enemies ignore gems/keys
+  when deciding to turn (is_wall_ignorable).
+
+## Assets & scenes
+
+- Enemy: enemy1.png and enemy1_sprite_frames.tres (idle, walk, attack,
+  dead); Enemy.tscn uses new sprite and state machine.
+- Tiles: background_tiles.png and background_tileset.tres for background
+  layer; arc_tileset updated.
+- Rooms: Room0–Room4 updated (enemies, tiles, DeathZones as needed).
+- Player.tscn: animation and resource references updated.
+
+## Web export & docs
+
+- DATA_EXPORT_GUIDE: document exit event and host request_exit flow;
+  send_exit_to_host() and polling window.__hostRequestedExit.
+- web_export_shell.html: handle host request_exit message, set
+  __hostRequestedExit for GDScript polling.
+- Game.gd: _process() polls for host request_exit (web) and calls
+  send_exit_to_host() when requested.
+- .cursor/rules: references to shared Godot rules; godot-terminal-bridge
+  and godot-web-export-shared-runtime authoritative paths and godot_game
+  node note.
+- export_presets.cfg: vram_texture_compression/for_mobile=true.
+- project.godot: remove window/size/mode=3 override.
+
+## Spike vs death tiles
+
+- handle_spike_damage(): still uses take_damage(1) + knockback for
+  spike tiles (SPIKE_ATLAS_COORD) that are not in DEATH_TILES.
+- handle_death_tiles(): DEATH_TILES trigger request_respawn_from_fall()
+  so player respawns at last checkpoint instead of draining lives on
+  spike/death tiles.

@@ -211,7 +211,6 @@ func send_game_over_to_host() -> void:
 func send_exit_to_host() -> void:
 	"""Send current run stats to host when user exits (e.g. Exit button). Only sends if not already sent (game_over or collectibles)."""
 	if has_sent_collectibles:
-		print("[EXIT_DEBUG] HealthManager: send_exit_to_host skipped (already sent)")
 		return
 	if not OS.has_feature("web"):
 		return
@@ -225,7 +224,6 @@ func send_exit_to_host() -> void:
 			"diamonds": large_gems
 		}
 	}
-	print("[EXIT_DEBUG] HealthManager: sending exit payload gems=", small_gems, " diamonds=", large_gems)
 	var json = JSON.stringify(payload)
 	var js = "window.parent.postMessage(" + json + ", window.location.origin);"
 	JavaScriptBridge.eval(js)

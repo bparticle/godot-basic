@@ -96,8 +96,6 @@ enum JumpPhase {
 @onready var land_player = $LandPlayer
 @onready var jump_player = $JumpPlayer
 @onready var room_manager = get_node("/root/RoomManager")
-@onready var state_machine = $StateMachine
-@onready var movement_component = $MovementComponent
 
 func _ready():
 	# Add player to a group for easy access

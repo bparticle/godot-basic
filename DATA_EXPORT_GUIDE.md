@@ -102,7 +102,14 @@ func on_run_finished():
 When the user clicks Exit (or presses ESC) in the host, the host posts `{ "type": "host_request", "action": "request_exit" }` to the iframe. Your game must:
 
 1. **Web shell** (`web_export_shell.html`): Set `window.__hostRequestedExit = false` and add a `message` listener that sets `window.__hostRequestedExit = true` when it receives that payload.
-2. **GDScript**: In `_process()` (web only), poll with `JavaScriptBridge.eval("(function(){ var r = !!window.__hostRequestedExit; window.__hostRequestedExit = false; return r; })();")`. When the result is `true`, call your exit send helper (same shape as game_over but `event: "exit"`).
+2. **GDScript**: In `_process()` (web only), poll with a simple truthy check:
+   ```gdscript
+   var flag_value = JavaScriptBridge.eval("window.__hostRequestedExit")
+   if flag_value:
+       JavaScriptBridge.eval("window.__hostRequestedExit = false")
+       send_exit_to_host()
+   ```
+   **Important**: Use a truthy check (`if flag_value:`), not strict equality (`if flag_value == true:`). The return type from `JavaScriptBridge.eval()` may not match GDScript's `true` exactly.
 3. **Data export**: Implement `send_exit_to_host()` (or equivalent) that sends one payload with `event: "exit"` and current run metrics, and sets `has_sent_collectibles` (or similar) so you don’t double-send.
 
 This gives the host time to receive the exit payload before it unmounts the iframe.

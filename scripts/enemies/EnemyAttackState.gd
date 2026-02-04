@@ -37,7 +37,7 @@ func update(delta: float):
 		perform_attack()
 		has_attacked = true
 
-func physics_update(delta: float):
+func physics_update(_delta: float):
 	if parent.is_dead:
 		return
 	# Respect edges and walls: never run off the platform or push into a wall/ladder

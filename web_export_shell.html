@@ -83,7 +83,6 @@
     window.__hostRequestedExit = false;
     window.addEventListener('message', function(e) {
       if (e.data && e.data.type === 'host_request' && e.data.action === 'request_exit') {
-        console.log('[EXIT_DEBUG] Godot shell: received request_exit, setting __hostRequestedExit = true');
         window.__hostRequestedExit = true;
       }
     });

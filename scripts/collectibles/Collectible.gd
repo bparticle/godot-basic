@@ -58,8 +58,8 @@ func collect():
 		if pickup_sprite:
 			pickup_sprite.visible = false
 		if pickup_collision:
-			pickup_collision.disabled = true
-		monitoring = false
+			pickup_collision.set_deferred("disabled", true)
+		set_deferred("monitoring", false)
 		pickup_player.play()
 		await pickup_player.finished
 	queue_free()

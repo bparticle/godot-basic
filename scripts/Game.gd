@@ -75,10 +75,9 @@ func _show_game_over_overlay() -> void:
 func _process(_delta: float) -> void:
 	# Web: poll for host request_exit so we can send run stats before the iframe is closed
 	if OS.has_feature("web") and health_manager and health_manager.has_method("send_exit_to_host"):
-		var js = "(function(){ var r = !!window.__hostRequestedExit; window.__hostRequestedExit = false; return r; })();"
-		var requested = JavaScriptBridge.eval(js)
-		if requested == true:
-			print("[EXIT_DEBUG] Game.gd: host requested exit, calling send_exit_to_host")
+		var flag_value = JavaScriptBridge.eval("window.__hostRequestedExit")
+		if flag_value:
+			JavaScriptBridge.eval("window.__hostRequestedExit = false")
 			health_manager.send_exit_to_host()
 
 func _draw():

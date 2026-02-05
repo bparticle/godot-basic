@@ -265,13 +265,11 @@ flash_duration = 0.7
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("sprite_frames")
-animation = &"death_tile"
-frame = 1
-frame_progress = 0.35795838
+animation = &"duck"
 offset = Vector2(0, -8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -8)
+position = Vector2(1, -8)
 shape = SubResource("collision_shape")
 
 [node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="."]

@@ -33,10 +33,19 @@ enum JumpPhase {
 @export var debug_draw_collision: bool = false
 @export var debug_draw_movement: bool = false
 
+# Squash and stretch settings (hybrid mode - works because we have 3x pixel resolution)
+@export_group("Squash & Stretch")
+@export var squash_stretch_enabled: bool = true
+@export var jump_squash: Vector2 = Vector2(0.8, 1.25)  # Stretch vertically on jump
+@export var land_squash: Vector2 = Vector2(1.3, 0.7)   # Squash on landing
+@export var fall_stretch: Vector2 = Vector2(0.85, 1.15) # Slight stretch when falling fast
+@export var squash_recovery_speed: float = 12.0        # How fast to return to normal
+
 # Audio settings
 @export_group("Audio Settings")
 @export var footstep_stream: AudioStream
 @export var footstep_interval: float = 0.18
+@export var crouch_footstep_interval: float = 0.35  # Slower footsteps when crouch walking
 @export var footstep_min_speed: float = 5.0
 @export var footstep_volume_db: float = -6.0
 @export var land_stream: AudioStream
@@ -96,6 +105,11 @@ enum JumpPhase {
 @onready var land_player = $LandPlayer
 @onready var jump_player = $JumpPlayer
 @onready var room_manager = get_node("/root/RoomManager")
+@onready var effects_manager = get_node_or_null("/root/EffectsManager")
+
+# Squash/stretch state
+var target_squash: Vector2 = Vector2.ONE
+var current_squash: Vector2 = Vector2.ONE
 
 func _ready():
 	# Add player to a group for easy access
@@ -418,6 +432,10 @@ func _physics_process(delta: float) -> void:
 	# Update animation and collision
 	update_animation()
 	update_collision_shape() # Update collision based on animation
+	
+	# Update squash/stretch visual effect
+	update_squash_stretch(delta)
+	
 	var pre_move_velocity_y = velocity.y
 	move_and_slide()
 	handle_stomp_on_enemies(pre_move_velocity_y)
@@ -487,7 +505,9 @@ func update_footsteps(delta: float) -> void:
 	if footstep_timer <= 0.0:
 		if footstep_player and footstep_player.stream:
 			footstep_player.play()
-		footstep_timer = footstep_interval
+		# Use slower footstep interval when crouch walking
+		var interval = crouch_footstep_interval if is_crouching else footstep_interval
+		footstep_timer = interval
 
 func handle_stomp_on_enemies(pre_move_velocity_y: float) -> void:
 	"""If we landed on an enemy (stomp), kill it and bounce. We get the collision; the enemy may not."""
@@ -512,6 +532,11 @@ func handle_stomp_on_enemies(pre_move_velocity_y: float) -> void:
 		if collider.has_method("stomp_kill"):
 			collider.stomp_kill()
 			velocity.y = stomp_bounce_velocity
+			
+			# Impact effects for satisfying stomp
+			if effects_manager:
+				effects_manager.impact(0.04, 4.0)  # Brief hit stop + screen shake
+			apply_squash(jump_squash)  # Bounce squash
 		return
 
 func handle_landing_sfx(pre_move_velocity_y: float) -> void:
@@ -524,6 +549,9 @@ func handle_landing_sfx(pre_move_velocity_y: float) -> void:
 		if from_jump or landing_speed >= land_min_fall_speed:
 			if land_player and land_player.stream:
 				land_player.play()
+			
+			# Squash effect on landing
+			apply_squash(land_squash)
 
 func process_inputs() -> void:
 	"""Centralized input processing - handles all input states and transitions"""
@@ -547,6 +575,40 @@ func process_inputs() -> void:
 	
 	# Handle state transitions
 	handle_state_transitions()
+
+
+#region Squash & Stretch System
+
+func apply_squash(squash_scale: Vector2) -> void:
+	"""Apply a squash/stretch effect to the sprite"""
+	if not squash_stretch_enabled:
+		return
+	target_squash = squash_scale
+
+func update_squash_stretch(delta: float) -> void:
+	"""Update squash/stretch visual effect - lerp back to normal"""
+	if not squash_stretch_enabled or not animated_sprite:
+		return
+	
+	# Apply subtle stretch when falling fast
+	if not is_on_floor() and velocity.y > 150.0 and target_squash == Vector2.ONE:
+		# Dynamically stretch based on fall speed
+		var stretch_factor = remap(velocity.y, 150.0, 400.0, 1.0, fall_stretch.y)
+		stretch_factor = clampf(stretch_factor, 1.0, fall_stretch.y)
+		var width_factor = remap(velocity.y, 150.0, 400.0, 1.0, fall_stretch.x)
+		width_factor = clampf(width_factor, fall_stretch.x, 1.0)
+		current_squash = Vector2(width_factor, stretch_factor)
+	else:
+		# Lerp current squash toward target (or back to normal)
+		current_squash = current_squash.lerp(target_squash, squash_recovery_speed * delta)
+	
+	# Reset target toward normal over time
+	target_squash = target_squash.lerp(Vector2.ONE, squash_recovery_speed * 0.5 * delta)
+	
+	# Apply to sprite (scale from bottom center for proper grounding)
+	animated_sprite.scale = current_squash
+
+#endregion
 
 func handle_jump_input() -> void:
 	"""Handle jump input - UP key while moving with buffering"""
@@ -594,6 +656,9 @@ func do_jump(jump_strength: float = jump_velocity * jump_power) -> void:
 	# Clear any conflicting timers
 	jump_buffer_timer = 0.0
 	coyote_timer = 0.0
+	
+	# Squash/stretch effect on jump (stretch vertically)
+	apply_squash(jump_squash)
 
 func try_consume_buffered_jump() -> void:
 	"""Try to consume a buffered jump input after movement"""
@@ -1070,6 +1135,11 @@ func _on_health_changed(current_lives: int, _max_lives: int):
 
 	if took_damage:
 		trigger_white_flash()
+		
+		# Impact effects for damage feedback
+		if effects_manager:
+			effects_manager.impact(0.06, 5.0)  # Slightly longer hit stop for damage
+		
 		if current_lives > 0:
 			suppress_landing_sfx_until_ms = Time.get_ticks_msec() + 400
 			# Grant i-frames after any damage so we don't get hit again immediately
@@ -1083,6 +1153,11 @@ func _on_health_changed(current_lives: int, _max_lives: int):
 
 	if current_lives <= 0 and not is_dead:
 		is_dead = true
+		
+		# Big impact on death
+		if effects_manager:
+			effects_manager.impact(0.1, 8.0)  # Longer hit stop and bigger shake for death
+		
 		if recently_hit_by_enemy:
 			killed_by_enemy = true
 			has_shown_death_knockback = false

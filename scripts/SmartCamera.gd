@@ -5,6 +5,12 @@ extends Camera2D
 # but will not exceed the boundaries of the current room
 
 @onready var room_manager = get_node("/root/RoomManager")
+@onready var effects_manager = get_node_or_null("/root/EffectsManager")
+
+# Hybrid mode: we use 3x viewport resolution but zoom camera to show focused game area
+# This gives us smooth sub-pixel effects while maintaining a tight, focused view
+# Zoom 4.0 = shows 225x225 game units (more zoomed in than original 300x300)
+const HYBRID_ZOOM: float = 4.0
 
 var viewport_size: Vector2
 var follow_speed: float = 8.0  # Increased for more responsive camera in Godot 4.5
@@ -12,14 +18,21 @@ var player: CharacterBody2D
 
 
 func _ready():
-	# Get viewport size
-	viewport_size = get_viewport().get_visible_rect().size
+	# Set zoom for hybrid mode - shows same game area as original 300x300
+	zoom = Vector2(HYBRID_ZOOM, HYBRID_ZOOM)
+	
+	# Get viewport size (divided by zoom to get effective game view size)
+	viewport_size = get_viewport().get_visible_rect().size / HYBRID_ZOOM
 	# Keep viewport size in sync if window/viewport changes
-	get_viewport().size_changed.connect(func(): viewport_size = get_viewport().get_visible_rect().size)
+	get_viewport().size_changed.connect(func(): viewport_size = get_viewport().get_visible_rect().size / HYBRID_ZOOM)
 	
 	# Connect to room changes
 	if room_manager:
 		room_manager.room_changed.connect(_on_room_changed)
+	
+	# Register with effects manager
+	if effects_manager:
+		effects_manager.register_camera(self)
 
 func _physics_process(delta: float):
 	# Using _physics_process instead of _process for smoother camera movement in Godot 4.5

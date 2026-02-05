@@ -25,16 +25,20 @@ HealthManager="*res://scripts/managers/HealthManager.gd"
 GameStateManager="*res://scripts/managers/GameStateManager.gd"
 RNG="*res://scripts/managers/RNG.gd"
 SceneChanger="*res://scripts/managers/SceneChanger.gd"
+EffectsManager="*res://scripts/managers/EffectsManager.gd"
 
 [display]
 
-window/size/viewport_width=300
-window/size/viewport_height=300
+# HYBRID MODE: 3x internal resolution for smooth effects while keeping pixel art aesthetic
+# Original was 300x300 with 2x scale. Now 900x900 (3x art scale) for effect fidelity.
+# Sprites still use Nearest filter and look chunky, but effects can be smooth.
+window/size/viewport_width=900
+window/size/viewport_height=900
 window/size/mode=2
-window/size/window_width_override=350
-window/size/window_height_override=350
+window/size/window_width_override=900
+window/size/window_height_override=900
 window/stretch/mode="canvas_items"
-window/stretch/scale=2.0
+window/stretch/scale=1.0
 
 [input_devices]
 

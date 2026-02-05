@@ -16,8 +16,8 @@ script = ExtResource("1_script")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("7_sprite_frames")
-animation = &"walk"
-frame_progress = 0.72347945
+animation = &"idle"
+frame_progress = 0.47871822
 offset = Vector2(0, -8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

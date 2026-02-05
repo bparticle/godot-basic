@@ -29,9 +29,9 @@ scroll_scale = Vector2(0.9, 0.9)
 
 [node name="ColorRect" type="ColorRect" parent="Parallax2D"]
 offset_left = -36.0
-offset_top = -87.0
+offset_top = -88.0
 offset_right = 526.0
-offset_bottom = 509.0
+offset_bottom = 508.0
 color = Color(0.101961, 0.101961, 0.101961, 1)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="Parallax2D"]
@@ -44,7 +44,7 @@ tile_map_data = PackedByteArray("AAAcAAMAAAACAAIAAAASAAYAAAACAAIAAAATAAYAAAACAAI
 tile_set = ExtResource("1_g07y1")
 
 [node name="PlayerSpawn" type="Marker2D" parent="."]
-position = Vector2(22, 45)
+position = Vector2(24, 86)
 
 [node name="Key1" parent="." instance=ExtResource("5_key")]
 position = Vector2(348, 178)

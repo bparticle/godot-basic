@@ -14,6 +14,13 @@ script = ExtResource("2_camera_script")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="HeartsUI" parent="UI" instance=ExtResource("3_hearts_ui")]
+[node name="UIScale" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 225.0
+offset_bottom = 225.0
+scale = Vector2(4, 4)
 
-[node name="InventoryUI" parent="UI" instance=ExtResource("4_inventory_ui")]
+[node name="HeartsUI" parent="UI/UIScale" instance=ExtResource("3_hearts_ui")]
+
+[node name="InventoryUI" parent="UI/UIScale" instance=ExtResource("4_inventory_ui")]

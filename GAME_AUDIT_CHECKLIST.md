@@ -250,7 +250,7 @@ func transition_to_room(room_idx: int) -> void:
 
 - [ ] Add death particles (pixel explosion)
 - [ ] Add brief death animation hold
-- [ ] Add respawn animation (fade in or materialize)
+- [x] Add respawn animation (fade in or materialize) - spawn animation plays on respawn
 - [ ] Screen shake on death
 - [ ] Consider brief slowmo before death
 
@@ -516,6 +516,15 @@ var save_data = {
 
 ## Recent Changes Log
 
+### February 5, 2026 - Gun System & Spawn Animation
+- ✅ Added spawn animation (5 frames at 10 FPS) - plays on respawn
+- ✅ Implemented gun system with shooting mechanics
+- ✅ Added gun animations: idle_gun, walk_gun, shoot
+- ✅ Created Bullet projectile scene with enemy damage
+- ✅ Added shoot input action (Space/X keys)
+- ✅ Added shooting SFX (SFX 26)
+- ✅ Fixed footstep vs shoot audio separation (SFX 22 vs 26)
+
 ### February 4, 2026 - Hybrid Mode & Game Feel
 - ✅ Set up hybrid rendering mode (900x900 viewport, 4x camera zoom)
 - ✅ Added `EffectsManager.gd` autoload for global effects
@@ -526,4 +535,4 @@ var save_data = {
 
 ---
 
-*Last Updated: February 4, 2026*
+*Last Updated: February 5, 2026*

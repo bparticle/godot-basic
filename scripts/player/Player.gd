@@ -53,6 +53,8 @@ enum JumpPhase {
 @export var land_min_fall_speed: float = 140.0
 @export var jump_stream: AudioStream
 @export var jump_volume_db: float = -6.0
+@export var shoot_stream: AudioStream
+@export var shoot_volume_db: float = -6.0
 
 # Death tile visual feedback
 @export_group("Death Tile Effects")
@@ -98,12 +100,20 @@ enum JumpPhase {
 @export var collision_climb_size: Vector2 = Vector2(4, 14)
 @export var collision_climb_offset: Vector2 = Vector2(0, -7)
 
+# Gun system settings
+@export_group("Gun System")
+@export var has_gun: bool = true # Whether player currently has a gun
+@export var fire_rate: float = 0.15 # Minimum time between shots (seconds)
+@export var muzzle_offset: Vector2 = Vector2(8, -8) # Offset from player center for bullet spawn
+@export var shoot_animation_duration: float = 0.08 # How long to show shoot animation
+
 # References - Using $ for direct child references (more reliable for current scene structure)
 @onready var animated_sprite = $AnimatedSprite2D
 @onready var collision_shape = $CollisionShape2D
 @onready var footstep_player = $FootstepPlayer
 @onready var land_player = $LandPlayer
 @onready var jump_player = $JumpPlayer
+@onready var shoot_player = $ShootPlayer
 @onready var room_manager = get_node("/root/RoomManager")
 @onready var effects_manager = get_node_or_null("/root/EffectsManager")
 
@@ -140,6 +150,10 @@ func _ready():
 		jump_player.volume_db = jump_volume_db
 		if jump_stream:
 			jump_player.stream = jump_stream
+	if shoot_player:
+		shoot_player.volume_db = shoot_volume_db
+		if shoot_stream:
+			shoot_player.stream = shoot_stream
 	
 	# Load and setup white flash shader
 	white_flash_shader = load("res://shaders/white_flash.gdshader")
@@ -150,6 +164,9 @@ func _ready():
 	# Connect animation finished signal for spawn animation
 	if animated_sprite:
 		animated_sprite.animation_finished.connect(_on_animation_finished)
+	
+	# Preload bullet scene for gun system
+	bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
 
 func _input(event: InputEvent) -> void:
 	if not touch_controls_enabled:
@@ -264,6 +281,7 @@ var is_climbing: bool:
 		# Add climb state change logic here if needed
 
 var climb_direction = 0 # -1 for left, 1 for right
+var facing_direction: int = 1 # 1 = right, -1 = left (persists when stopped)
 var forced_crouch = false # When we're forced to crouch due to low ceiling
 var climb_animation_timer = 0.0 # Timer for climb animation
 
@@ -349,6 +367,13 @@ var suppress_landing_sfx_until_ms: int = 0
 
 # Spawn animation state
 var is_spawning = false # Whether we're currently in spawn animation
+
+# Gun state
+var is_shooting = false # Whether we're currently in shoot animation
+var shoot_cooldown_timer: float = 0.0 # Timer for fire rate limiting
+var shoot_animation_timer: float = 0.0 # Timer for shoot animation duration
+var bullet_scene: PackedScene # Preloaded bullet scene
+
 # Death from enemy: damage jump + death_tile animation
 var last_damage_from_enemy_position: Vector2 = Vector2.ZERO
 var damaged_by_enemy_at_ms: int = -99999
@@ -449,6 +474,9 @@ func _physics_process(delta: float) -> void:
 	# Handle input processing
 	process_inputs()
 	
+	# Handle shooting
+	handle_shooting(delta)
+	
 	# Handle climbing if in climb state
 	if is_climbing:
 		handle_climbing(delta)
@@ -520,6 +548,73 @@ func handle_movement(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, direction * current_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0, friction * delta)
+
+#region Gun System
+
+func _is_shoot_pressed() -> bool:
+	"""Check if shoot input is pressed (spacebar or dedicated action)"""
+	return Input.is_action_just_pressed("shoot") or Input.is_action_just_pressed("ui_accept")
+
+func handle_shooting(delta: float) -> void:
+	"""Handle shooting input and cooldowns"""
+	# Update cooldown timer
+	if shoot_cooldown_timer > 0.0:
+		shoot_cooldown_timer -= delta
+	
+	# Update shoot animation timer
+	if shoot_animation_timer > 0.0:
+		shoot_animation_timer -= delta
+		if shoot_animation_timer <= 0.0:
+			is_shooting = false
+	
+	# Check for shoot input
+	if not has_gun:
+		return
+	
+	# Can't shoot while dead, spawning, climbing, or crouching
+	if is_dead or is_spawning or is_climbing or is_crouching:
+		return
+	
+	# Check if shoot button pressed and cooldown expired
+	if _is_shoot_pressed() and shoot_cooldown_timer <= 0.0:
+		fire_bullet()
+
+func fire_bullet() -> void:
+	"""Fire a bullet in the direction the player is facing"""
+	if not bullet_scene:
+		return
+	
+	# Use facing_direction which persists when player stops moving
+	var direction = facing_direction
+	
+	# Calculate spawn position (muzzle offset)
+	var spawn_pos = global_position + Vector2(muzzle_offset.x * direction, muzzle_offset.y)
+	
+	# Spawn bullet
+	var bullet = bullet_scene.instantiate()
+	bullet.initialize(direction, spawn_pos)
+	
+	# Add bullet to the current room (or game scene)
+	var game_container = get_parent()
+	if game_container:
+		game_container.add_child(bullet)
+	
+	# Play shoot sound
+	if shoot_player and shoot_player.stream:
+		shoot_player.play()
+	
+	# Apply cooldown
+	shoot_cooldown_timer = fire_rate
+	
+	# Trigger shoot animation
+	is_shooting = true
+	shoot_animation_timer = shoot_animation_duration
+	
+	# Small recoil effect (optional - slight screen shake)
+	if effects_manager:
+		effects_manager.impact(0.01, 1.0)  # Very subtle
+
+#endregion
 
 func update_footsteps(delta: float) -> void:
 	"""Play spaced footsteps while walking or climbing."""
@@ -1235,13 +1330,17 @@ func update_animation() -> void:
 					animated_sprite.play("dead")
 		return
 	
-	# Handle sprite flipping
-	if velocity.x < 0:
-		animated_sprite.flip_h = true
+	# Handle sprite flipping - only update facing direction when actually moving
+	# This preserves the direction when player stops (important for aiming)
+	if velocity.x < -5:
+		facing_direction = -1
 		climb_direction = -1
-	elif velocity.x > 0:
-		animated_sprite.flip_h = false
+	elif velocity.x > 5:
+		facing_direction = 1
 		climb_direction = 1
+	
+	# Apply facing direction to sprite (always, so it persists when stopped)
+	animated_sprite.flip_h = (facing_direction < 0)
 	
 	# Handle blinking logic
 	handle_blinking()
@@ -1251,7 +1350,11 @@ func update_animation() -> void:
 	
 	# Handle animation states
 	var new_animation = ""
-	if is_blinking:
+	
+	# Shooting animation has high priority (but not over blink/climb/jump)
+	if is_shooting and has_gun and is_on_floor() and not is_climbing and not is_crouching:
+		new_animation = "shoot"
+	elif is_blinking:
 		new_animation = "blink"
 	elif is_climbing:
 		new_animation = "climb"
@@ -1277,22 +1380,23 @@ func update_animation() -> void:
 		else:
 			new_animation = "duck"
 	elif abs(velocity.x) > 5:
-		new_animation = "walk"
+		# Use gun variant if equipped
+		new_animation = "walk_gun" if has_gun else "walk"
 	else:
-		new_animation = "idle"
+		# Use gun variant if equipped
+		new_animation = "idle_gun" if has_gun else "idle"
 	
 	# Only change if different
 	if new_animation != current_animation:
 		current_animation = new_animation
 		animated_sprite.play(current_animation)
 	
-	# Handle mirrored idle after blinking
-	if current_animation == "idle" and use_mirrored_idle:
-		# Flip the sprite horizontally for mirrored idle
-		animated_sprite.flip_h = true
-	elif current_animation == "idle" and not use_mirrored_idle:
-		# Reset to normal direction when not mirrored
-		animated_sprite.flip_h = false
+	# Handle mirrored idle after blinking (works for both idle and idle_gun)
+	# Mirrored idle temporarily faces the opposite direction, then returns to normal facing
+	if current_animation in ["idle", "idle_gun"] and use_mirrored_idle:
+		# Flip the sprite to opposite of current facing direction
+		animated_sprite.flip_h = (facing_direction > 0)  # Face opposite way
+	# Note: When not in mirrored idle, facing_direction controls flip_h (set above)
 
 func handle_blinking() -> void:
 	# Only blink when idle and not moving
@@ -1352,10 +1456,10 @@ func update_collision_shape() -> void:
 	
 	# Apply collision based on current animation using exported values
 	match current_animation:
-		"idle", "blink", "spawn":
+		"idle", "blink", "spawn", "idle_gun", "shoot":
 			shape.size = collision_idle_size
 			collision_shape.position = collision_idle_offset
-		"walk":
+		"walk", "walk_gun":
 			shape.size = collision_walk_size
 			collision_shape.position = collision_walk_offset
 		"jump", "jump_up", "jump_peak", "jump_down", "jump_land":

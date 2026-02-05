@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://dl34sqvjyqliu"]
+[gd_scene load_steps=12 format=3 uid="uid://b5pn6n1dg2jr5"]
 
 [ext_resource type="Script" uid="uid://dboj8vc1y46ad" path="res://scripts/enemies/Enemy.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://dpkf3m7aty1jk" path="res://scripts/enemies/EnemyMovementComponent.gd" id="2_script"]
@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://dmr8pa0pshi4s" path="res://scripts/enemies/EnemyIdleState.gd" id="4_script"]
 [ext_resource type="Script" uid="uid://cqmq87cs8k0o6" path="res://scripts/enemies/EnemyChaseState.gd" id="5_script"]
 [ext_resource type="Script" uid="uid://bhvtinqx42xlf" path="res://scripts/enemies/EnemyAttackState.gd" id="6_script"]
-[ext_resource type="SpriteFrames" uid="uid://rbdxq5tbveny" path="res://resources/characters/enemy1_sprite_frames.tres" id="7_sprite_frames"]
+[ext_resource type="SpriteFrames" path="res://resources/characters/enemy1_sprite_frames.tres" id="7_sprite_frames"]
 [ext_resource type="Script" uid="uid://cfwrx7bsdmmwd" path="res://scripts/enemies/EnemySuspiciousState.gd" id="8_suspicious_script"]
 [ext_resource type="Script" uid="uid://c6h2fdihywldg" path="res://scripts/enemies/EnemySearchState.gd" id="9_search_script"]
 [ext_resource type="Script" uid="uid://bwhlyje5a8u71" path="res://scripts/enemies/EnemyHurtState.gd" id="10_hurt_script"]

@@ -57,10 +57,10 @@
 
 # When creating new enemy types:
 # - See .cursor/rules/enemy-ai-system.mdc for complete guide
-# - Duplicate Enemy.tscn and adjust Inspector parameters, OR
-# - Extend Enemy.gd and override stats in _ready()
+# - Duplicate scenes/enemies/Enemy2.tscn and adjust Inspector parameters
+# - Create new SpriteFrames with animations: idle, walk, attack, dead
+# - Choose attack state: LungeAttackState (lunge) or EnemyAttackState (simple)
 # - Use personality system (aggression, caution, persistence) for varied behaviors
-# - Available presets: Grunt, Rusher, Stalker, Brute
 # - Full documentation: scripts/enemies/README_ENEMY_AI.md
 
 # When creating new collectibles:

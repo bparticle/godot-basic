@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=4 uid="uid://wxkat7cvqspw"]
+[gd_scene load_steps=14 format=4 uid="uid://wxkat7cvqspw"]
 
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_0wx0o"]
 [ext_resource type="TileSet" uid="uid://xs6rof6jga3" path="res://resources/tilesets/background_tileset.tres" id="1_vs1ei"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://b61rsgbab3ex3" path="res://scripts/zones/DeathZone.gd" id="4_0x35q"]
 [ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="5_key"]
 [ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://scenes/collectibles/GemSmall.tscn" id="8_g25s6"]
+[ext_resource type="PackedScene" uid="uid://c06d73smk5kg1" path="res://scenes/enemies/Enemy2.tscn" id="9_4u8wv"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 13)
@@ -97,3 +98,9 @@ position = Vector2(154, 9)
 
 [node name="GemLarge1" parent="." instance=ExtResource("2_dwwyj")]
 position = Vector2(88, 50)
+
+[node name="Monster4" parent="." instance=ExtResource("9_4u8wv")]
+position = Vector2(178, 38)
+speed = 26.0
+detection_range = 150.0
+attack_range = 15.0

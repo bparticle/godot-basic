@@ -1,8 +1,8 @@
-class_name Enemy2AttackState
+class_name LungeAttackState
 extends State
 
-# Enemy2 lunge attack state - jumps at the player during attack
-# This enemy performs a leaping attack toward the player
+# Lunge attack state - enemy jumps at the player during attack
+# Use this for aggressive enemies that leap toward the player
 
 enum AttackPhase { TELEGRAPH, LUNGE, RECOVERY }
 
@@ -129,9 +129,15 @@ func physics_update(_delta: float):
 	if parent.is_dead:
 		return
 	
-	# Don't block ladders - keep moving away if near one (except during lunge)
+	# Don't block ladders - keep moving toward player if on one (except during lunge)
 	if parent.is_near_ladder() and attack_phase != AttackPhase.LUNGE:
-		parent.velocity.x = parent.walk_direction * parent.speed * 0.5
+		# Move toward player, not just in walk_direction
+		if parent.target:
+			var to_player = parent.target.global_position.x - parent.global_position.x
+			var move_dir = sign(to_player) if abs(to_player) > 4.0 else parent.walk_direction
+			parent.velocity.x = move_dir * parent.speed * 0.5
+		else:
+			parent.velocity.x = parent.walk_direction * parent.speed * 0.5
 		return
 	
 	match attack_phase:

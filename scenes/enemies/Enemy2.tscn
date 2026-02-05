@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/states/StateMachine.gd" id="3_script"]
 [ext_resource type="Script" uid="uid://dmr8pa0pshi4s" path="res://scripts/enemies/EnemyIdleState.gd" id="4_script"]
 [ext_resource type="Script" uid="uid://cqmq87cs8k0o6" path="res://scripts/enemies/EnemyChaseState.gd" id="5_script"]
-[ext_resource type="Script" uid="uid://iwp2vunj6vq0" path="res://scripts/enemies/Enemy2AttackState.gd" id="6_script"]
+[ext_resource type="Script" path="res://scripts/enemies/LungeAttackState.gd" id="6_script"]
 [ext_resource type="SpriteFrames" uid="uid://bkbigrjxxun0e" path="res://resources/characters/enemy2_sprite_frames.tres" id="7_sprite_frames"]
 [ext_resource type="Script" uid="uid://cfwrx7bsdmmwd" path="res://scripts/enemies/EnemySuspiciousState.gd" id="8_suspicious_script"]
 [ext_resource type="Script" uid="uid://c6h2fdihywldg" path="res://scripts/enemies/EnemySearchState.gd" id="9_search_script"]
@@ -16,6 +16,8 @@ size = Vector2(8, 12)
 
 [node name="Enemy2" type="CharacterBody2D"]
 script = ExtResource("1_script")
+attack_trigger_range_multiplier = 6.0
+aggression = 0.689
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("7_sprite_frames")

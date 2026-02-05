@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://b61rsgbab3ex3" path="res://scripts/zones/DeathZone.gd" id="3_death_script"]
 [ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="4_key"]
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="7_50jb0"]
-[ext_resource type="PackedScene" uid="uid://dl34sqvjyqliu" path="res://scenes/enemies/Enemy.tscn" id="9_mwb0y"]
+[ext_resource type="PackedScene" uid="uid://c06d73smk5kg1" path="res://scenes/enemies/Enemy2.tscn" id="9_mwb0y"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
@@ -109,5 +109,8 @@ position = Vector2(188, 145)
 [node name="GemLarge2" parent="." instance=ExtResource("7_50jb0")]
 position = Vector2(108, 27)
 
-[node name="Enemy2" parent="." instance=ExtResource("9_mwb0y")]
-position = Vector2(130, 111)
+[node name="Monster4" parent="." instance=ExtResource("9_mwb0y")]
+position = Vector2(143, 110)
+speed = 26.0
+detection_range = 150.0
+attack_range = 15.0

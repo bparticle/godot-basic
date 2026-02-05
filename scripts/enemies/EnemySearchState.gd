@@ -52,10 +52,15 @@ func physics_update(_delta: float):
 	if parent.is_dead:
 		return
 	
-	# Don't block ladders - keep moving if we're near one
+	# Don't block ladders - keep moving toward last known position if on one
 	if parent.is_near_ladder():
-		# Walk away from the ladder instead of stopping
-		parent.velocity.x = parent.walk_direction * parent.speed * 0.5
+		# Move toward last known position or player
+		var target_x = parent.last_known_player_position.x
+		if parent.target and parent.can_see_player():
+			target_x = parent.target.global_position.x
+		var to_target = target_x - parent.global_position.x
+		var move_dir = sign(to_target) if abs(to_target) > 4.0 else parent.walk_direction
+		parent.velocity.x = move_dir * parent.speed * 0.5
 		return
 	
 	# Check if we should stop and look around at last known position

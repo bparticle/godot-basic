@@ -13,7 +13,7 @@ Enemy.gd (CharacterBody2D)
     ├── idle (patrol)
     ├── suspicious (investigating)
     ├── chase (pursuing player)
-    ├── attack (telegraph → strike → recovery)
+    ├── attack (uses pluggable attack state)
     ├── search (looking for lost player)
     └── hurt (stagger reaction)
 ```
@@ -33,10 +33,11 @@ Enemy.gd (CharacterBody2D)
      │                           ▼                            ▼
      │                     back to patrol              ┌──────────┐
      │                                                 │  ATTACK  │
-     └────────────────────────────────────────────────▶│telegraph │
-                                                       │ →strike  │
-                    ┌──────────────────────────────────│→recovery │
-                    │ lost sight                       └────┬─────┘
+     │                                                 │telegraph │
+     └────────────────────────────────────────────────▶│ →strike  │
+                                                       │→recovery │
+                    ┌──────────────────────────────────└────┬─────┘
+                    │ lost sight                            │
                     ▼                                       │
               ┌──────────┐                                  │
               │  SEARCH  │◀─────────────────────────────────┘
@@ -56,20 +57,25 @@ Enemy.gd (CharacterBody2D)
 
 ## Creating a New Enemy Type
 
-### Method 1: Inspector Configuration (Recommended)
+### Step 1: Create a New Scene
 
-1. **Create a new scene** inheriting from `Enemy.tscn`
-2. **Adjust exported parameters** in the Inspector:
+1. **Duplicate** `scenes/enemies/Enemy2.tscn` as a starting point
+2. **Rename** the root node to your enemy name (e.g., "Slime", "Goblin")
+3. **Create new SpriteFrames** resource with your enemy's animations
+
+### Step 2: Configure Parameters
+
+Select the root node and adjust exported parameters in the Inspector:
 
 #### Enemy Stats
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `speed` | 18.0 | Base movement speed |
-| `detection_range` | 100.0 | Legacy range (vision_range is preferred) |
-| `attack_range` | 20.0 | Distance to trigger attack |
+| `detection_range` | 100.0 | How close player must be to trigger awareness |
+| `attack_range` | 90.0 | Distance to deal damage |
+| `attack_trigger_range_multiplier` | 1.5 | Multiplier for when to start attacking (higher = attacks from further) |
 | `attack_damage` | 1 | Damage per hit |
 | `max_health` | 3 | Hit points |
-| `enemy_color` | Green | Sprite tint |
 
 #### Vision
 | Parameter | Default | Description |
@@ -94,37 +100,56 @@ Enemy.gd (CharacterBody2D)
 | `caution` | 0.5 | High: shorter vision range, more careful |
 | `persistence` | 0.5 | High: searches longer, awareness decays slower |
 
-### Method 2: Script Extension
+### Step 3: Choose an Attack State
 
-```gdscript
-# scripts/enemies/FastEnemy.gd
-class_name FastEnemy
-extends Enemy
+The attack state determines how the enemy attacks. Available options:
 
-func _ready():
-    # Override stats for a fast, aggressive enemy
-    speed = 30.0
-    vision_range = 80.0  # Shorter vision (rushes in close)
-    aggression = 0.9
-    caution = 0.1
-    persistence = 0.3
-    
-    # Call parent _ready
-    super._ready()
+#### LungeAttackState (Recommended)
+- Enemy **jumps toward** the player
+- Best for aggressive, melee enemies
+- Configurable: `lunge_speed_x`, `lunge_jump_force`
+
+#### EnemyAttackState (Simple)
+- Enemy **moves forward** while attacking
+- No jumping, just forward motion
+- Good for basic patrol enemies
+
+To change attack state, update the `attack` node under `StateMachine` to use the desired script.
+
+---
+
+## Attack State Configuration
+
+### LungeAttackState Parameters
+
+Select the `attack` node under `StateMachine` in your enemy scene:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `lunge_speed_x` | 60.0 | Horizontal speed during lunge (pixels/sec) |
+| `lunge_jump_force` | -80.0 | Vertical jump force (negative = up, smaller = shorter hop) |
+
+### Attack Trigger Distance
+
+The enemy starts attacking when:
 ```
+distance_to_player <= attack_range * attack_trigger_range_multiplier
+```
+
+For aggressive lunging enemies, set `attack_trigger_range_multiplier` high (e.g., 6.0) so they lunge from far away.
 
 ---
 
 ## Enemy Presets
 
-### Grunt (Basic)
+### Hopper (Current Default)
 ```
 speed: 18.0
-aggression: 0.5
-caution: 0.5
-persistence: 0.5
+attack_trigger_range_multiplier: 6.0
+aggression: 0.7
+Attack: LungeAttackState
 ```
-Balanced enemy. Patrols, investigates, chases at moderate speed.
+Aggressive leaping enemy. Spots player and immediately lunges.
 
 ### Rusher (Fast)
 ```
@@ -174,70 +199,19 @@ Slow, hits hard, doesn't give up.
    - Only triggers if player is NOT in direct vision
    - Returns `true` = enemy notices something at edge of vision
 
-### Raycast Details
-
-The raycast starts from enemy's "eye level" (4px above center) and aims at player's center. Only terrain (collision layer 1) blocks vision.
-
-```gdscript
-# Customize what blocks vision by changing collision_mask
-query.collision_mask = 1  # Only terrain blocks sight
-```
-
 ---
 
-## Awareness System
+## Required Animations
 
-### Awareness Levels
+Each enemy's SpriteFrames resource must include:
 
-| Level | State | Behavior |
-|-------|-------|----------|
-| 0.0 | Unaware | Normal patrol |
-| 0.0 - 0.5 | Suspicious | Looking around |
-| 0.5 - 1.0 | Alert | Actively investigating |
-| 1.0+ | Combat | Chasing/attacking |
-| 2.0 | Hyper-alert | After being hit |
-
-### Buildup & Decay
-
-```
-Direct sight:     +2.0 * suspicion_buildup_rate * delta
-Peripheral sight: +1.0 * suspicion_buildup_rate * delta
-No sight:         -1.0 * suspicion_decay_rate * (1 - persistence * 0.5) * delta
-```
-
-### Last Known Position
-
-When the enemy loses sight of the player, they remember `last_known_player_position` and will:
-1. Move toward that position in Search state
-2. Look around when they arrive
-3. Return to patrol after `search_duration` seconds
-
----
-
-## Attack Telegraph System
-
-### Phases
-
-1. **TELEGRAPH** (default 0.3s)
-   - Enemy stops moving
-   - Visual warning (pulsing yellow/red if no animation)
-   - Duration reduced by `aggression` (up to 40% faster)
-
-2. **STRIKE** (default 0.2s)
-   - Enemy lunges toward player (1.5x attack speed)
-   - Damage dealt at 30% through this phase
-   - Only hits once per attack cycle
-
-3. **RECOVERY** (default 0.4s)
-   - Enemy slows down
-   - Slightly dimmed sprite (vulnerability indicator)
-   - Cannot start new attack until complete
-
-### Adding Attack Animations
-
-Add these animations to the enemy's SpriteFrames resource:
-- `attack_telegraph` - Wind-up frames (optional, uses tint if missing)
-- `attack` - Strike frames (required)
+| Animation | Required | Description |
+|-----------|----------|-------------|
+| `idle` | Yes | Standing/patrolling |
+| `walk` | Yes | Moving/chasing |
+| `attack` | Yes | Attack animation |
+| `dead` | Yes | Death animation (plays once) |
+| `hurt` | No | Damage reaction (uses idle if missing) |
 
 ---
 
@@ -246,8 +220,8 @@ Add these animations to the enemy's SpriteFrames resource:
 ### 1. Create the State Script
 
 ```gdscript
-# scripts/enemies/EnemyPatrolState.gd
-class_name EnemyCustomState
+# scripts/enemies/MyCustomState.gd
+class_name MyCustomState
 extends State
 
 var parent: Enemy
@@ -282,19 +256,12 @@ func check_transitions():
         return
 ```
 
-### 2. Add to Scene
+### 2. Add to Enemy Scene
 
-1. Open `scenes/enemies/Enemy.tscn`
+1. Open your enemy scene
 2. Add ext_resource for your script
-3. Add a new Node under StateMachine with your script
-
-### 3. Reference from Other States
-
-```gdscript
-# In another state's check_transitions()
-if should_enter_custom_state:
-    transition_to("custom")  # Must match node name
-```
+3. Add a new Node under StateMachine named after the state
+4. Attach your script to it
 
 ---
 
@@ -303,64 +270,6 @@ if should_enter_custom_state:
 Enable in the Inspector:
 - `debug_draw_ai` - Shows line to target (green=visible, red=blocked)
 - `debug_draw_detection` - Shows vision cones, attack range, awareness bar
-
-### What the Debug Drawing Shows
-
-- **Green cone**: Direct vision range and angle
-- **Yellow cone**: Peripheral vision
-- **Red circle**: Attack range
-- **Vertical bar**: Current awareness level (taller = more aware)
-- **Orange dot**: Last known player position (when not visible)
-- **Line to player**: Green if visible, red if blocked
-
----
-
-## Common Customizations
-
-### Make Enemy Ignore Walls (Ghost)
-
-```gdscript
-func _raycast_to_player() -> bool:
-    return true  # Always "sees" through walls
-```
-
-### Add Hearing (Detect Player Behind)
-
-```gdscript
-func can_hear_player() -> bool:
-    if not target:
-        return false
-    var distance = global_position.distance_to(target.global_position)
-    var hearing_range = 40.0
-    # Hear player if they're running (high velocity)
-    return distance < hearing_range and target.velocity.length() > 50.0
-```
-
-Then add to idle state's `check_transitions()`:
-```gdscript
-if parent.can_hear_player():
-    transition_to("suspicious")
-```
-
-### Add Patrol Points
-
-```gdscript
-@export var patrol_points: Array[Vector2] = []
-var current_patrol_index: int = 0
-
-func _get_next_patrol_point() -> Vector2:
-    if patrol_points.is_empty():
-        return global_position
-    current_patrol_index = (current_patrol_index + 1) % patrol_points.size()
-    return patrol_points[current_patrol_index]
-```
-
-### Add Jump Attack
-
-Create `EnemyJumpAttackState.gd` that:
-1. Calculates arc to player position
-2. Applies upward velocity during telegraph
-3. Deals damage on landing near player
 
 ---
 
@@ -372,7 +281,20 @@ Create `EnemyJumpAttackState.gd` that:
 | `EnemyIdleState.gd` | Patrol behavior, peripheral detection |
 | `EnemySuspiciousState.gd` | Looking around after glimpsing player |
 | `EnemyChaseState.gd` | Active pursuit with smart direction |
-| `EnemyAttackState.gd` | Telegraph → Strike → Recovery phases |
+| `LungeAttackState.gd` | Lunge/jump attack (telegraph → lunge → recovery) |
+| `EnemyAttackState.gd` | Simple forward attack (telegraph → strike → recovery) |
 | `EnemySearchState.gd` | Investigating last known position |
 | `EnemyHurtState.gd` | Damage stagger reaction |
 | `EnemyMovementComponent.gd` | Movement interface (for future expansion) |
+
+## Scene Reference
+
+| Scene | Description |
+|-------|-------------|
+| `scenes/enemies/Enemy2.tscn` | Hopper enemy - uses lunge attack, aggressive |
+
+## Resource Reference
+
+| Resource | Description |
+|----------|-------------|
+| `resources/characters/enemy2_sprite_frames.tres` | Sprite frames for Enemy2 |

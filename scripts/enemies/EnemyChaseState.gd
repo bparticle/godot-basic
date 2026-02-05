@@ -35,23 +35,29 @@ func physics_update(_delta: float):
 	if parent.is_dead:
 		return
 	
+	# If on a ladder, always move toward the player - don't let turn_around logic interfere
+	var on_ladder = parent.is_near_ladder()
+	
 	# SMART CHASE: Turn toward player when we can see them
 	if parent.target and parent.can_see_player():
 		var to_player_x = parent.target.global_position.x - parent.global_position.x
 		# Dead zone to prevent jitter when player is directly above/below
 		if abs(to_player_x) > 4.0:
 			var desired_direction = sign(to_player_x)
-			# Only change direction if it won't immediately cause a turn-around
 			if desired_direction != parent.walk_direction:
-				# Check if turning toward player is safe (won't walk off edge)
-				var old_direction = parent.walk_direction
-				parent.walk_direction = desired_direction
-				if parent.should_turn_around():
-					# Unsafe to go that way - revert
-					parent.walk_direction = old_direction
+				if on_ladder:
+					# On ladder - always face player, ignore turn_around checks
+					parent.walk_direction = desired_direction
+				else:
+					# Check if turning toward player is safe (won't walk off edge)
+					var old_direction = parent.walk_direction
+					parent.walk_direction = desired_direction
+					if parent.should_turn_around():
+						# Unsafe to go that way - revert
+						parent.walk_direction = old_direction
 	
-	# Still check for edge/wall BEFORE setting velocity
-	if parent.should_turn_around():
+	# Check for edge/wall BEFORE setting velocity (skip if on ladder - keep chasing)
+	if not on_ladder and parent.should_turn_around():
 		parent.turn_around()
 	
 	# Apply personality: aggressive enemies chase faster
@@ -79,7 +85,7 @@ func check_transitions():
 			transition_to("idle")
 		return
 	
-	# Player on same level and in attack range -> attack!
-	if parent.is_player_on_same_level() and parent.get_distance_to_target() <= parent.attack_range * 1.5:
+	# Player on same level and in attack trigger range -> attack!
+	if parent.is_player_on_same_level() and parent.get_distance_to_target() <= parent.attack_range * parent.attack_trigger_range_multiplier:
 		transition_to("attack")
 		return

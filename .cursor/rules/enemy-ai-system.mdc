@@ -15,7 +15,7 @@
 #     ├── idle (patrol)
 #     ├── suspicious (investigating)
 #     ├── chase (pursuing player)
-#     ├── attack (telegraph → strike → recovery)
+#     ├── attack (pluggable - LungeAttackState or EnemyAttackState)
 #     ├── search (looking for lost player)
 #     └── hurt (stagger reaction)
 
@@ -25,13 +25,34 @@
 # idle → chase: Direct vision sees player
 # suspicious → chase: Found player or awareness threshold reached
 # suspicious → idle: Timeout with no evidence
-# chase → attack: Player on same level and in attack range
+# chase → attack: Player on same level and in attack trigger range
 # chase → search: Lost line of sight
 # attack → chase: Attack complete, player moved away
 # search → chase: Found player again
 # search → idle: Search timeout
 # Any state → hurt: Took damage
 # hurt → chase: Recovery complete (enemy becomes angry)
+
+# ATTACK STATES (PLUGGABLE)
+# =========================
+# The attack node under StateMachine can use different attack scripts:
+#
+# LungeAttackState.gd (Recommended):
+#   - Enemy JUMPS toward player
+#   - Configurable: lunge_speed_x, lunge_jump_force
+#   - Best for aggressive melee enemies
+#
+# EnemyAttackState.gd (Simple):
+#   - Enemy MOVES forward during strike
+#   - No jumping, basic approach
+#   - Good for basic patrol enemies
+
+# ATTACK TRIGGER
+# ==============
+# Attack triggers when:
+#   distance_to_player <= attack_range * attack_trigger_range_multiplier
+#
+# Set attack_trigger_range_multiplier high (e.g., 6.0) for aggressive lunging
 
 # VISION SYSTEM
 # =============
@@ -45,11 +66,6 @@
 #   - Range: peripheral_range (default 60px)
 #   - Angle: peripheral_angle (default 120° half-angle)
 #   - Triggers suspicion, not immediate chase
-#
-# Key functions:
-#   - can_see_player() → bool: Direct vision check
-#   - can_see_player_peripheral() → bool: Peripheral check
-#   - _raycast_to_player() → bool: Line of sight clear
 
 # AWARENESS SYSTEM
 # ================
@@ -58,11 +74,6 @@
 #   - 0.5-1.0: Alert, actively investigating
 #   - 1.0+: Combat mode
 #   - 2.0: After being hit (maximum alertness)
-#
-# Buildup/Decay rates controlled by:
-#   - suspicion_buildup_rate (default 2.0)
-#   - suspicion_decay_rate (default 0.5)
-#   - Personality affects these values
 #
 # last_known_player_position: Updated when player seen, used for search behavior
 
@@ -82,48 +93,19 @@
 #   - Higher: Searches longer, awareness decays slower
 #   - Lower: Gives up quickly, awareness decays fast
 
-# ATTACK TELEGRAPH SYSTEM
-# =======================
-# Three phases ensure fair, readable combat:
-#
-# 1. TELEGRAPH (default 0.3s, reduced by aggression):
-#    - Enemy stops moving
-#    - Visual warning (pulsing color or animation)
-#    - Player has time to react
-#
-# 2. STRIKE (default 0.2s):
-#    - Enemy lunges at 1.5x speed
-#    - Damage dealt at 30% into phase
-#    - One hit per attack cycle
-#
-# 3. RECOVERY (default 0.4s):
-#    - Enemy slows down
-#    - Vulnerability window
-#    - Cannot attack again until complete
-
 # CREATING NEW ENEMY TYPES
 # ========================
-# Method 1: Inspector Configuration
-#   1. Duplicate Enemy.tscn
-#   2. Adjust exported parameters in Inspector
-#   3. Change enemy_color for visual distinction
-#
-# Method 2: Script Extension
-#   ```gdscript
-#   class_name FastEnemy
-#   extends Enemy
-#
-#   func _ready():
-#       speed = 30.0
-#       aggression = 0.9
-#       caution = 0.1
-#       super._ready()
-#   ```
+# 1. Duplicate scenes/enemies/Enemy2.tscn
+# 2. Rename root node to your enemy name
+# 3. Create new SpriteFrames resource with animations: idle, walk, attack, dead
+# 4. Adjust exported parameters in Inspector
+# 5. Choose attack state (LungeAttackState or EnemyAttackState)
 
 # PRESET CONFIGURATIONS
 # =====================
-# Grunt (Basic):
-#   speed: 18, aggression: 0.5, caution: 0.5, persistence: 0.5
+# Hopper (Current Default - Enemy2):
+#   attack_trigger_range_multiplier: 6.0, aggression: 0.7
+#   Attack: LungeAttackState
 #
 # Rusher (Fast):
 #   speed: 30, vision_range: 80, aggression: 0.9, caution: 0.1, persistence: 0.3
@@ -134,66 +116,50 @@
 # Brute (Heavy):
 #   speed: 12, attack_damage: 2, max_health: 5, aggression: 0.7, persistence: 0.9
 
-# ADDING NEW STATES
-# =================
-# 1. Create script extending State in scripts/enemies/
-# 2. Implement: enter(), exit(), update(), physics_update(), check_transitions()
-# 3. Add ext_resource to Enemy.tscn
-# 4. Add node under StateMachine with script attached
-# 5. Reference from other states via transition_to("state_name")
-#
-# State template:
-#   ```gdscript
-#   class_name EnemyCustomState
-#   extends State
-#
-#   var parent: Enemy
-#   var animated_sprite: AnimatedSprite2D
-#
-#   func enter():
-#       parent = get_parent().get_parent()
-#       animated_sprite = parent.get_node("AnimatedSprite2D")
-#
-#   func physics_update(_delta: float):
-#       if parent.is_dead:
-#           return
-#       # Your logic
-#       check_transitions()
-#
-#   func check_transitions():
-#       if condition:
-#           transition_to("chase")
-#   ```
-
-# DEBUG VISUALIZATION
+# REQUIRED ANIMATIONS
 # ===================
-# Enable in Inspector:
-#   - debug_draw_ai: Line to target (green=visible, red=blocked)
-#   - debug_draw_detection: Vision cones, attack range, awareness bar
+# Each enemy's SpriteFrames must include:
+#   - idle: Standing/patrolling
+#   - walk: Moving/chasing
+#   - attack: Attack animation
+#   - dead: Death animation (plays once, then enemy removed)
+#   - hurt: (Optional) Damage reaction
 
 # FILE REFERENCE
 # ==============
-# Enemy.gd: Main class with vision, awareness, personality
-# EnemyIdleState.gd: Patrol behavior
-# EnemySuspiciousState.gd: Investigation after glimpse
-# EnemyChaseState.gd: Active pursuit with smart direction
-# EnemyAttackState.gd: Telegraph → Strike → Recovery
-# EnemySearchState.gd: Last known position search
-# EnemyHurtState.gd: Damage stagger
-# EnemyMovementComponent.gd: Movement interface
-# README_ENEMY_AI.md: Complete documentation
+# scenes/enemies/Enemy2.tscn: Current enemy scene (hopper with lunge attack)
+#
+# scripts/enemies/Enemy.gd: Main class with vision, awareness, personality
+# scripts/enemies/EnemyIdleState.gd: Patrol behavior
+# scripts/enemies/EnemySuspiciousState.gd: Investigation after glimpse
+# scripts/enemies/EnemyChaseState.gd: Active pursuit with smart direction
+# scripts/enemies/LungeAttackState.gd: Lunge/jump attack (telegraph → lunge → recovery)
+# scripts/enemies/EnemyAttackState.gd: Simple forward attack (telegraph → strike → recovery)
+# scripts/enemies/EnemySearchState.gd: Last known position search
+# scripts/enemies/EnemyHurtState.gd: Damage stagger
+# scripts/enemies/EnemyMovementComponent.gd: Movement interface
+# scripts/enemies/README_ENEMY_AI.md: Complete documentation
+#
+# resources/characters/enemy2_sprite_frames.tres: Sprite frames for Enemy2
 
 # NAMING CONVENTIONS
 # ==================
-# States: Enemy{Behavior}State (e.g., EnemyChaseState)
-# Enemy types: {Type}Enemy (e.g., FastEnemy, HeavyEnemy)
-# Scene files: {Type}Enemy.tscn or Enemy.tscn for base
+# States: {Behavior}State or Enemy{Behavior}State (e.g., LungeAttackState, EnemyChaseState)
+# Enemy scenes: {Name}.tscn or Enemy{Number}.tscn
+# Sprite frames: {name}_sprite_frames.tres
+
+# LADDER HANDLING
+# ===============
+# Enemies automatically:
+#   - Walk over ladder tiles during patrol (don't turn around)
+#   - Move toward player when on ladder (don't block access)
+#   - Keep chasing through ladder areas
 
 # INTEGRATION NOTES
 # =================
 # - Enemies use the same State/StateMachine pattern as Player
 # - Stomp kills handled in Enemy._check_player_collision()
 # - Damage dealt via Enemy._damage_player() which notifies HealthManager
-# - Room changes may require re-acquiring player target
+# - Death animation plays before queue_free() (handled in Enemy.die())
 # - Physics priority: Enemy runs after Player (priority 100)
 # - State machine runs before Enemy (priority 50)

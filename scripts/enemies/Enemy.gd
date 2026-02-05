@@ -38,7 +38,7 @@ const PASSTHROUGH_TILES = [
 @export_group("Enemy Stats")
 @export var speed: float = 18.0
 @export var detection_range: float = 100.0
-@export var attack_range: float = 20.0
+@export var attack_range: float = 90.0
 @export var attack_damage: int = 1
 @export var max_health: int = 3
 @export var enemy_color: Color = Color(0.176471, 0.996078, 0.223529, 1)
@@ -49,6 +49,7 @@ const PASSTHROUGH_TILES = [
 @export var same_level_y_threshold: float = 20.0  # Max vertical distance for "same platform"; attack only when player on floor (not on ladder/jumping)
 @export var idle_wait_time: float = 2.0
 @export var attack_cooldown: float = 1.0
+@export var attack_trigger_range_multiplier: float = 1.5  # How far to start attack (multiplier of attack_range). Set higher for aggressive lunging enemies
 
 @export_group("Vision")
 @export var vision_range: float = 120.0  # Direct vision range
@@ -407,18 +408,11 @@ func at_platform_end() -> bool:
 	return false
 
 func is_near_ladder() -> bool:
-	"""Check if the enemy is standing on or very close to a ladder tile."""
+	"""Check if the enemy is standing directly on a ladder tile (not just adjacent)."""
 	var feet_pos = global_position + Vector2(0, edge_check_feet_offset)
-	# Check current position
+	# Only check current position and directly below - not left/right
 	var atlas_at = get_tile_atlas_at_position(feet_pos)
 	if atlas_at in PASSTHROUGH_TILES:
-		return true
-	# Check slightly left and right (in case we're at the edge of a ladder)
-	var atlas_left = get_tile_atlas_at_position(feet_pos + Vector2(-tile_size, 0))
-	if atlas_left in PASSTHROUGH_TILES:
-		return true
-	var atlas_right = get_tile_atlas_at_position(feet_pos + Vector2(tile_size, 0))
-	if atlas_right in PASSTHROUGH_TILES:
 		return true
 	# Check below (ladder might be below feet level)
 	var atlas_below = get_tile_atlas_at_position(feet_pos + Vector2(0, tile_size))

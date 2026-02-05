@@ -29,16 +29,12 @@ EffectsManager="*res://scripts/managers/EffectsManager.gd"
 
 [display]
 
-# HYBRID MODE: 3x internal resolution for smooth effects while keeping pixel art aesthetic
-# Original was 300x300 with 2x scale. Now 900x900 (3x art scale) for effect fidelity.
-# Sprites still use Nearest filter and look chunky, but effects can be smooth.
-window/size/viewport_width=900
 window/size/viewport_height=900
 window/size/mode=2
 window/size/window_width_override=900
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
-window/stretch/scale=1.0
+#HYBRIDMODE:3xinternalresolutionforsmootheffectswhilekeepingpixelartaesthetic#Originalwas300x300with2xscale.Now900x900(3xartscale)foreffectfidelity.#SpritesstilluseNearestfilterandlookchunky,buteffectscanbesmooth.window/size/viewport_width=900
 
 [input_devices]
 

@@ -47,9 +47,9 @@ window/stretch/scale=2.0
 ### Known Issues
 - [ ] Player state machine classes exist but aren't integrated
 - [ ] 1,360-line Player.gd needs refactoring
-- [ ] No visual feedback/juice
+- [x] ~~No visual feedback/juice~~ (squash/stretch and hit stop added)
 - [ ] Missing menus (main, pause, settings)
-- [ ] Enemy AI is predictable
+- [x] ~~Enemy AI is predictable~~ (vision system, awareness states, attack telegraph, hurt reactions added)
 - [ ] No level progression system
 - [ ] Limited audio feedback
 
@@ -57,64 +57,60 @@ window/stretch/scale=2.0
 
 ## Tier 1: Low-Hanging Fruit (Quick Wins)
 
-### 1.1 Frame-Based Anticipation & Landing (Pixel-Perfect Squash/Stretch)
+### 1.1 Squash & Stretch ✅ COMPLETE (Hybrid Mode)
 > **Impact:** High | **Effort:** Low  
-> **Note:** Instead of runtime scaling (which breaks pixel art), add frames to sprite sheet
+> **Note:** Using hybrid mode (higher pixel density), runtime scaling now works smoothly
 
-- [ ] Add 1-2 "crouch anticipation" frames before jump (compressed pose)
-- [ ] Add 1-2 "landing recovery" frames (wide/compressed pose)
-- [ ] Add "peak" frame at jump apex (stretched pose)
-- [ ] Update `Player.gd` to play these frames at appropriate times
-- [ ] Consider adding wind-up frame before running
+- [x] Jump squash/stretch (vertical stretch on takeoff)
+- [x] Landing squash (horizontal squash on landing)
+- [x] Fall stretch (dynamic stretch based on fall velocity)
+- [x] Smooth lerp recovery back to normal scale
+- [x] Configurable via exported variables in Player inspector
 
-**Reference:** Shovel Knight, Celeste - they use sprite frames, not runtime scaling
-
-### 1.2 Screen Shake
-> **Impact:** High | **Effort:** Low
-
-- [ ] Add shake function to `SmartCamera.gd`
-- [ ] Shake on: player damage taken
-- [ ] Shake on: landing from high fall
-- [ ] Shake on: enemy death (subtle)
-- [ ] Shake on: collecting large gem (very subtle)
-- [ ] Add `shake_intensity` and `shake_decay` parameters
-- [ ] Ensure shake snaps to pixel grid (round to integers)
+**Implemented in:** `scripts/player/Player.gd`
 
 ```gdscript
-# SmartCamera.gd addition
-var shake_intensity: float = 0.0
-var shake_decay: float = 5.0
-
-func shake(intensity: float) -> void:
-    shake_intensity = intensity
-
-func _physics_process(delta: float) -> void:
-    # ... existing code ...
-    if shake_intensity > 0:
-        # Snap to pixels for clean look
-        offset = Vector2(
-            round(randf_range(-1, 1) * shake_intensity),
-            round(randf_range(-1, 1) * shake_intensity)
-        )
-        shake_intensity = lerpf(shake_intensity, 0.0, shake_decay * delta)
-    else:
-        offset = Vector2.ZERO
+# Player.gd - Squash & Stretch settings
+@export var squash_stretch_enabled: bool = true
+@export var jump_squash: Vector2 = Vector2(0.8, 1.25)
+@export var land_squash: Vector2 = Vector2(1.3, 0.7)
+@export var fall_stretch: Vector2 = Vector2(0.85, 1.15)
+@export var squash_recovery_speed: float = 12.0
 ```
 
-### 1.3 Hit Stop / Freeze Frames
+### 1.2 Screen Shake
+> **Impact:** High | **Effort:** Low  
+> **Status:** ⚠️ IMPLEMENTED BUT DISABLED - Found too distracting for this game's style
+
+- [x] Add shake function to `SmartCamera.gd` (implemented, then disabled)
+- [x] Shake on: player damage taken (disabled)
+- [x] Shake on: landing from high fall (disabled)
+- [ ] ~~Shake on: enemy death (subtle)~~ (skipped)
+- [ ] ~~Shake on: collecting large gem (very subtle)~~ (skipped)
+- [x] Add `shake_intensity` and `shake_decay` parameters (in EffectsManager)
+- [ ] ~~Ensure shake snaps to pixel grid~~ (not needed - disabled)
+
+**Note:** Screen shake was implemented but removed at user request. The infrastructure exists in `EffectsManager.gd` if needed later.
+
+### 1.3 Hit Stop / Freeze Frames ✅ COMPLETE
 > **Impact:** High | **Effort:** Low
 
-- [ ] Create hit stop function (pause game briefly on impact)
-- [ ] Apply on: player taking damage (~50ms)
-- [ ] Apply on: stomping enemy (~30ms)
-- [ ] Apply on: enemy dying (~40ms)
+- [x] Create hit stop function (pause game briefly on impact)
+- [x] Apply on: player taking damage (~60ms)
+- [x] Apply on: stomping enemy (~40ms)
+- [x] Apply on: player death (~100ms)
+
+**Implemented in:** `scripts/managers/EffectsManager.gd` (autoload)
 
 ```gdscript
-# Add to Game.gd or new EffectsManager.gd
+# EffectsManager.gd - DONE
 func hit_stop(duration: float = 0.05) -> void:
     Engine.time_scale = 0.0
     await get_tree().create_timer(duration, true, false, true).timeout
     Engine.time_scale = 1.0
+
+func impact(hit_stop_duration: float = 0.04, _shake_intensity: float = 3.0) -> void:
+    hit_stop(hit_stop_duration)
 ```
 
 ### 1.4 Improve Jump Feel
@@ -450,9 +446,10 @@ var save_data = {
 | Variable Jump | ✅ Yes | Yes |
 | Wall Jump | ⬜ No | Optional |
 | Dash | ⬜ No | Optional |
-| Screen Shake | ⬜ No | Yes |
+| Squash/Stretch | ✅ Yes | Yes |
+| Screen Shake | ⚠️ Disabled | Optional |
 | Particles | ⬜ No | Yes |
-| Hit Stop | ⬜ No | Yes |
+| Hit Stop | ✅ Yes | Yes |
 | Parallax BG | ⬜ No | Yes |
 | Save System | ⬜ No | Yes |
 | Main Menu | ⬜ No | Yes |
@@ -466,9 +463,9 @@ var save_data = {
 ## Implementation Priority
 
 ### Phase 1: Game Feel (Start Here)
-1. [ ] Frame-based anticipation sprites
-2. [ ] Screen shake (pixel-snapped)
-3. [ ] Hit stop
+1. [x] ~~Frame-based anticipation sprites~~ → Runtime squash/stretch (hybrid mode)
+2. [x] ~~Screen shake~~ → Implemented but disabled (too distracting)
+3. [x] Hit stop ✅
 4. [ ] Sound polish
 5. [ ] Pixel dust particles
 
@@ -496,7 +493,14 @@ var save_data = {
 
 ## Notes
 
-### Pixel-Perfect Considerations
+### Hybrid Mode (Current Setup)
+- **Runtime scaling works** - squash/stretch via sprite scale is smooth
+- **Higher effect fidelity** - 4x pixel density for smooth animations
+- **Sprites still chunky** - Nearest filter preserved, art looks pixel-y
+- **Sub-pixel movement** - smoother motion than true pixel-perfect
+- **UI scaled separately** - 225x225 base, scaled 4x via Control node
+
+### Pixel-Perfect Considerations (If Reverting)
 - **No runtime scaling** - use sprite frames for squash/stretch
 - **Snap positions to grid** - `round()` or `snapped(Vector2.ONE)`
 - **Integer camera positions** - avoid sub-pixel rendering
@@ -510,4 +514,16 @@ var save_data = {
 
 ---
 
-*Last Updated: February 2026*
+## Recent Changes Log
+
+### February 4, 2026 - Hybrid Mode & Game Feel
+- ✅ Set up hybrid rendering mode (900x900 viewport, 4x camera zoom)
+- ✅ Added `EffectsManager.gd` autoload for global effects
+- ✅ Implemented hit stop (freeze frames) on damage, stomp, death
+- ✅ Implemented squash/stretch system (jump, land, fall)
+- ✅ Fixed UI scaling for hybrid mode (225x225 base, 4x scale)
+- ⚠️ Screen shake implemented but disabled (user preference)
+
+---
+
+*Last Updated: February 4, 2026*

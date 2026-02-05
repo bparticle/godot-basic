@@ -146,6 +146,10 @@ func _ready():
 	if white_flash_shader and animated_sprite:
 		animated_sprite.material = ShaderMaterial.new()
 		animated_sprite.material.shader = white_flash_shader
+	
+	# Connect animation finished signal for spawn animation
+	if animated_sprite:
+		animated_sprite.animation_finished.connect(_on_animation_finished)
 
 func _input(event: InputEvent) -> void:
 	if not touch_controls_enabled:
@@ -326,8 +330,10 @@ var touch_jump_hold_timer: float = 0.0
 @onready var health_manager = get_node("/root/HealthManager")
 @export var damage_immunity_duration_ms: int = 2000  # Platformer standard: ~2s invulnerability + blink after hit
 @export var stomp_bounce_velocity: float = -200.0
-@export var spike_knockback_speed: float = 100.0
-@export var spike_knockup_velocity: float = -180.0
+@export var spike_knockback_speed: float = 80.0
+@export var spike_knockup_velocity: float = -140.0
+@export var death_tile_knockback_speed: float = 80.0
+@export var death_tile_knockup_velocity: float = -140.0
 var damage_immunity_until_ms: int = 0
 const SPIKE_ATLAS_COORD: Vector2i = Vector2i(1, 1) # (col=1,row=1) second column/row in 0-based atlas
 
@@ -340,6 +346,9 @@ var damage_animation_timer = 0.0 # Timer for damage animation
 var show_damage_animation = false # Flag to show damage animation
 var last_lives: int = -1
 var suppress_landing_sfx_until_ms: int = 0
+
+# Spawn animation state
+var is_spawning = false # Whether we're currently in spawn animation
 # Death from enemy: damage jump + death_tile animation
 var last_damage_from_enemy_position: Vector2 = Vector2.ZERO
 var damaged_by_enemy_at_ms: int = -99999
@@ -369,7 +378,28 @@ const DEATH_TILES = [
 	Vector2i(7, 2)  # (7,2) spike
 ]
 
+func _on_animation_finished() -> void:
+	"""Handle animation finished events"""
+	if animated_sprite and animated_sprite.animation == "spawn":
+		is_spawning = false
+		# Reset to idle animation after spawn
+		current_animation = "idle"
+		animated_sprite.play("idle")
+
 func _physics_process(delta: float) -> void:
+	# If spawning, freeze in place (no gravity, no movement) and play animation
+	if is_spawning:
+		# Ensure no movement during spawn
+		velocity = Vector2.ZERO
+		if animated_sprite:
+			animated_sprite.visible = true
+			if animated_sprite.animation != "spawn":
+				animated_sprite.play("spawn")
+				current_animation = "spawn"
+		# Update collision shape for spawn animation
+		update_collision_shape()
+		return
+	
 	# Always check for spike damage first, even when dead
 	handle_spike_damage()
 	
@@ -1081,7 +1111,11 @@ func handle_spike_damage() -> void:
 	velocity.y = spike_knockup_velocity
 
 func handle_death_tiles() -> void:
-	"""Check if player is touching death tiles and set animation flag"""
+	"""Check if player is touching death tiles - bounce back with damage instead of respawn"""
+	# Respect damage immunity (platformer standard: no damage during blink)
+	if Time.get_ticks_msec() < damage_immunity_until_ms:
+		return
+	
 	# If dead and already showed final knockback, stop checking death tiles entirely
 	if is_dead and has_shown_death_knockback:
 		return
@@ -1120,10 +1154,21 @@ func handle_death_tiles() -> void:
 		if debug_death_tiles:
 			print("[DEATH] hit atlas=", death_hit_atlas, " map=", death_hit_map, " local_p=", tilemap.to_local(global_position), " was_touching=", was_touching_death_tile)
 		death_tile_hit = true
-		# Respawn at last checkpoint (same as falling into a pit) so player doesn't get stuck losing lives
-		if not was_touching_death_tile and health_manager and health_manager.has_method("request_respawn_from_fall"):
+		# Bounce back with damage instead of respawning - allows player to escape hazards
+		if not was_touching_death_tile:
 			trigger_white_flash()
-			health_manager.request_respawn_from_fall()
+			if health_manager:
+				health_manager.take_damage(1)
+			# Grant invulnerability
+			damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
+			# Lock input briefly so knockback feels impactful
+			input_locked_until_ms = max(input_locked_until_ms, Time.get_ticks_msec() + int(damage_immunity_duration_ms * 0.4))
+			# Apply knockback to bounce player away from danger
+			var knock_dir = -1 if velocity.x > 0 else 1
+			if abs(velocity.x) < 1.0:
+				knock_dir = 1 if animated_sprite.flip_h else -1
+			velocity.x = knock_dir * death_tile_knockback_speed
+			velocity.y = death_tile_knockup_velocity
 		was_touching_death_tile = true
 	else:
 		was_touching_death_tile = false
@@ -1144,11 +1189,11 @@ func _on_health_changed(current_lives: int, _max_lives: int):
 			suppress_landing_sfx_until_ms = Time.get_ticks_msec() + 400
 			# Grant i-frames after any damage so we don't get hit again immediately
 			damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
-			# Non-fatal enemy hit: small knockback so the hit feels solid
+			# Non-fatal enemy hit: bounce back so player can escape
 			if recently_hit_by_enemy and last_damage_from_enemy_position != Vector2.ZERO:
 				var away = (global_position - last_damage_from_enemy_position).normalized()
-				velocity.x = away.x * enemy_death_knockback_speed * 0.6
-				velocity.y = enemy_death_knockup_velocity * 0.5
+				velocity.x = away.x * death_tile_knockback_speed
+				velocity.y = death_tile_knockup_velocity
 	last_lives = current_lives
 
 	if current_lives <= 0 and not is_dead:
@@ -1307,7 +1352,7 @@ func update_collision_shape() -> void:
 	
 	# Apply collision based on current animation using exported values
 	match current_animation:
-		"idle", "blink":
+		"idle", "blink", "spawn":
 			shape.size = collision_idle_size
 			collision_shape.position = collision_idle_offset
 		"walk":
@@ -1354,8 +1399,8 @@ func on_damaged_by_enemy(enemy_pos: Vector2) -> void:
 	last_damage_from_enemy_position = enemy_pos
 	damaged_by_enemy_at_ms = Time.get_ticks_msec()
 
-func reset_death_state():
-	"""Reset death state when respawning"""
+func reset_death_state(play_spawn_anim: bool = false):
+	"""Reset death state when respawning. Set play_spawn_anim=true when respawning after deathzone."""
 	is_dead = false
 	has_shown_death_knockback = false
 	death_tile_hit = false
@@ -1365,11 +1410,28 @@ func reset_death_state():
 	show_damage_animation = false
 	damage_animation_timer = 0.0
 	flash_intensity = 0.0
+	is_spawning = false # Reset spawning state
 	# Brief invincibility + blink after respawn (platformer standard)
 	damage_immunity_until_ms = Time.get_ticks_msec() + damage_immunity_duration_ms
 	if animated_sprite:
 		animated_sprite.visible = true
 	_blink_invuln_timer = 0.0
+	# Start spawn animation only when respawning from deathzone
+	if play_spawn_anim:
+		play_spawn_animation()
+
+func play_spawn_animation():
+	"""Play the spawn animation after respawning from a deathzone"""
+	is_spawning = true
+	# Stop all movement during spawn
+	velocity = Vector2.ZERO
+	# Lock input during spawn animation (5 frames at 10fps = 0.5s)
+	input_locked_until_ms = Time.get_ticks_msec() + 600
+	if animated_sprite:
+		animated_sprite.visible = true
+		animated_sprite.stop()
+		animated_sprite.play("spawn")
+		current_animation = "spawn"
 
 func _is_input_locked() -> bool:
 	return Time.get_ticks_msec() < input_locked_until_ms
@@ -1380,6 +1442,12 @@ func get_damage_immunity_remaining_ms() -> int:
 
 func _update_invulnerability_blink(delta: float) -> void:
 	"""Blink sprite while invulnerable (platformer standard)."""
+	# Don't blink during spawn animation - stay visible
+	if is_spawning:
+		if animated_sprite:
+			animated_sprite.visible = true
+		return
+	
 	var invulnerable = Time.get_ticks_msec() < damage_immunity_until_ms
 	if not animated_sprite:
 		return

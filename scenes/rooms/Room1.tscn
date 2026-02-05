@@ -1,27 +1,18 @@
-[gd_scene load_steps=15 format=4 uid="uid://c881bufqvgtmd"]
+[gd_scene load_steps=12 format=4 uid="uid://c881bufqvgtmd"]
 
 [ext_resource type="TileSet" uid="uid://xs6rof6jga3" path="res://resources/tilesets/background_tileset.tres" id="1_7qyro"]
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_tileset"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="2_flag_tex"]
 [ext_resource type="Script" uid="uid://t7fgnontnhqm" path="res://scripts/doors/Door.gd" id="3_door_script"]
-[ext_resource type="Script" uid="uid://b61rsgbab3ex3" path="res://scripts/zones/DeathZone.gd" id="4_death_script"]
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="5_gem_large"]
 [ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://scenes/collectibles/GemSmall.tscn" id="6_gem_small"]
 [ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="7_key"]
 [ext_resource type="Script" uid="uid://bnvhxpft358sv" path="res://scripts/GameColors.gd" id="8_yj8na"]
-[ext_resource type="PackedScene" uid="uid://dl34sqvjyqliu" path="res://scenes/enemies/Enemy.tscn" id="9_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/zones/RespawnZone.tscn" id="10_3d18c"]
+[ext_resource type="PackedScene" uid="uid://c06d73smk5kg1" path="res://scenes/enemies/Enemy2.tscn" id="10_enemy2"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
-
-[sub_resource type="RectangleShape2D" id="2_death_shape"]
-size = Vector2(605, 20)
-
-[sub_resource type="RectangleShape2D" id="3_death_shape_left"]
-size = Vector2(20, 647)
-
-[sub_resource type="RectangleShape2D" id="4_death_shape_right"]
-size = Vector2(20, 606.5)
 
 [node name="Room1" type="Node2D"]
 
@@ -62,30 +53,6 @@ region_rect = Rect2(16, 0, 8, 16)
 position = Vector2(-109, -48)
 shape = SubResource("1_rect_shape")
 
-[node name="DeathZoneBottom" type="Area2D" parent="."]
-position = Vector2(64, 138)
-script = ExtResource("4_death_script")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneBottom"]
-position = Vector2(179, 371)
-shape = SubResource("2_death_shape")
-
-[node name="DeathZoneLeft" type="Area2D" parent="."]
-position = Vector2(-10, 64)
-script = ExtResource("4_death_script")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneLeft"]
-position = Vector2(-3, 221)
-shape = SubResource("3_death_shape_left")
-
-[node name="DeathZoneRight" type="Area2D" parent="."]
-position = Vector2(138, 64)
-script = ExtResource("4_death_script")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZoneRight"]
-position = Vector2(372, 174)
-shape = SubResource("4_death_shape_right")
-
 [node name="GemLarge1" parent="." instance=ExtResource("5_gem_large")]
 position = Vector2(260, 297)
 
@@ -116,15 +83,42 @@ position = Vector2(388, 281)
 [node name="Key1" parent="." instance=ExtResource("7_key")]
 position = Vector2(155, -29)
 
-[node name="Enemy1" parent="." instance=ExtResource("9_enemy")]
-position = Vector2(267, 399)
-
-[node name="Enemy5" parent="." instance=ExtResource("9_enemy")]
-position = Vector2(76, 479)
-
-[node name="Enemy2" parent="." instance=ExtResource("9_enemy")]
-position = Vector2(188, 294)
+[node name="Monster2" parent="." instance=ExtResource("10_enemy2")]
+position = Vector2(160, 180)
+speed = 26.0
+detection_range = 150.0
+attack_range = 15.0
 
 [node name="GameColors" type="Node" parent="."]
 script = ExtResource("8_yj8na")
 metadata/_custom_type_script = "uid://bnvhxpft358sv"
+
+[node name="RespawnZone" parent="." instance=ExtResource("10_3d18c")]
+position = Vector2(400, 510)
+zone_size = Vector2(250, 32)
+respawn_offset = Vector2(50, -50.375)
+spawn_elevation = null
+
+[node name="RespawnZone2" parent="." instance=ExtResource("10_3d18c")]
+position = Vector2(22, 509)
+zone_size = Vector2(100, 32)
+respawn_offset = Vector2(22.005, -42.925)
+spawn_elevation = null
+
+[node name="RespawnZone3" parent="." instance=ExtResource("10_3d18c")]
+position = Vector2(54, 224)
+zone_size = Vector2(49.71, 32.96)
+respawn_offset = Vector2(50.79, -50)
+spawn_elevation = null
+
+[node name="Monster3" parent="." instance=ExtResource("10_enemy2")]
+position = Vector2(117, 476)
+speed = 26.0
+detection_range = 150.0
+attack_range = 15.0
+
+[node name="Monster4" parent="." instance=ExtResource("10_enemy2")]
+position = Vector2(262, 396)
+speed = 26.0
+detection_range = 150.0
+attack_range = 15.0

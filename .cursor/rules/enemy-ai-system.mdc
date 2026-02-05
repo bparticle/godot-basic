@@ -1,0 +1,199 @@
+# Enemy AI System for Pimpa-Raka
+
+# This rule documents the enemy AI architecture for creating and extending enemy behaviors.
+# Reference: scripts/enemies/README_ENEMY_AI.md for complete documentation.
+
+# ARCHITECTURE OVERVIEW
+# ====================
+# The enemy system uses a state machine with vision-based detection and personality parameters.
+#
+# Enemy.gd (CharacterBody2D)
+# ├── Vision System (line-of-sight, vision cones)
+# ├── Awareness System (buildup/decay, last known position)
+# ├── Personality System (aggression, caution, persistence)
+# └── StateMachine
+#     ├── idle (patrol)
+#     ├── suspicious (investigating)
+#     ├── chase (pursuing player)
+#     ├── attack (telegraph → strike → recovery)
+#     ├── search (looking for lost player)
+#     └── hurt (stagger reaction)
+
+# STATE TRANSITIONS
+# =================
+# idle → suspicious: Peripheral vision detects player
+# idle → chase: Direct vision sees player
+# suspicious → chase: Found player or awareness threshold reached
+# suspicious → idle: Timeout with no evidence
+# chase → attack: Player on same level and in attack range
+# chase → search: Lost line of sight
+# attack → chase: Attack complete, player moved away
+# search → chase: Found player again
+# search → idle: Search timeout
+# Any state → hurt: Took damage
+# hurt → chase: Recovery complete (enemy becomes angry)
+
+# VISION SYSTEM
+# =============
+# Direct Vision:
+#   - Range: vision_range (default 120px)
+#   - Angle: vision_angle (default 60° half-angle)
+#   - Blocked by terrain (raycast check)
+#   - Triggers immediate alert
+#
+# Peripheral Vision:
+#   - Range: peripheral_range (default 60px)
+#   - Angle: peripheral_angle (default 120° half-angle)
+#   - Triggers suspicion, not immediate chase
+#
+# Key functions:
+#   - can_see_player() → bool: Direct vision check
+#   - can_see_player_peripheral() → bool: Peripheral check
+#   - _raycast_to_player() → bool: Line of sight clear
+
+# AWARENESS SYSTEM
+# ================
+# awareness_level: 0.0 (unaware) to 2.0 (hyper-alert)
+#   - 0.0-0.5: Suspicious, looking around
+#   - 0.5-1.0: Alert, actively investigating
+#   - 1.0+: Combat mode
+#   - 2.0: After being hit (maximum alertness)
+#
+# Buildup/Decay rates controlled by:
+#   - suspicion_buildup_rate (default 2.0)
+#   - suspicion_decay_rate (default 0.5)
+#   - Personality affects these values
+#
+# last_known_player_position: Updated when player seen, used for search behavior
+
+# PERSONALITY SYSTEM
+# ==================
+# Three parameters (0.0 to 1.0) affect enemy behavior:
+#
+# aggression (default 0.5):
+#   - Higher: Faster chase, shorter attack telegraph, more aggressive
+#   - Lower: Slower, longer warning before attacks
+#
+# caution (default 0.5):
+#   - Higher: Shorter effective vision range
+#   - Lower: Longer vision range
+#
+# persistence (default 0.5):
+#   - Higher: Searches longer, awareness decays slower
+#   - Lower: Gives up quickly, awareness decays fast
+
+# ATTACK TELEGRAPH SYSTEM
+# =======================
+# Three phases ensure fair, readable combat:
+#
+# 1. TELEGRAPH (default 0.3s, reduced by aggression):
+#    - Enemy stops moving
+#    - Visual warning (pulsing color or animation)
+#    - Player has time to react
+#
+# 2. STRIKE (default 0.2s):
+#    - Enemy lunges at 1.5x speed
+#    - Damage dealt at 30% into phase
+#    - One hit per attack cycle
+#
+# 3. RECOVERY (default 0.4s):
+#    - Enemy slows down
+#    - Vulnerability window
+#    - Cannot attack again until complete
+
+# CREATING NEW ENEMY TYPES
+# ========================
+# Method 1: Inspector Configuration
+#   1. Duplicate Enemy.tscn
+#   2. Adjust exported parameters in Inspector
+#   3. Change enemy_color for visual distinction
+#
+# Method 2: Script Extension
+#   ```gdscript
+#   class_name FastEnemy
+#   extends Enemy
+#
+#   func _ready():
+#       speed = 30.0
+#       aggression = 0.9
+#       caution = 0.1
+#       super._ready()
+#   ```
+
+# PRESET CONFIGURATIONS
+# =====================
+# Grunt (Basic):
+#   speed: 18, aggression: 0.5, caution: 0.5, persistence: 0.5
+#
+# Rusher (Fast):
+#   speed: 30, vision_range: 80, aggression: 0.9, caution: 0.1, persistence: 0.3
+#
+# Stalker (Cautious):
+#   speed: 14, vision_range: 160, aggression: 0.3, caution: 0.8, persistence: 0.7
+#
+# Brute (Heavy):
+#   speed: 12, attack_damage: 2, max_health: 5, aggression: 0.7, persistence: 0.9
+
+# ADDING NEW STATES
+# =================
+# 1. Create script extending State in scripts/enemies/
+# 2. Implement: enter(), exit(), update(), physics_update(), check_transitions()
+# 3. Add ext_resource to Enemy.tscn
+# 4. Add node under StateMachine with script attached
+# 5. Reference from other states via transition_to("state_name")
+#
+# State template:
+#   ```gdscript
+#   class_name EnemyCustomState
+#   extends State
+#
+#   var parent: Enemy
+#   var animated_sprite: AnimatedSprite2D
+#
+#   func enter():
+#       parent = get_parent().get_parent()
+#       animated_sprite = parent.get_node("AnimatedSprite2D")
+#
+#   func physics_update(_delta: float):
+#       if parent.is_dead:
+#           return
+#       # Your logic
+#       check_transitions()
+#
+#   func check_transitions():
+#       if condition:
+#           transition_to("chase")
+#   ```
+
+# DEBUG VISUALIZATION
+# ===================
+# Enable in Inspector:
+#   - debug_draw_ai: Line to target (green=visible, red=blocked)
+#   - debug_draw_detection: Vision cones, attack range, awareness bar
+
+# FILE REFERENCE
+# ==============
+# Enemy.gd: Main class with vision, awareness, personality
+# EnemyIdleState.gd: Patrol behavior
+# EnemySuspiciousState.gd: Investigation after glimpse
+# EnemyChaseState.gd: Active pursuit with smart direction
+# EnemyAttackState.gd: Telegraph → Strike → Recovery
+# EnemySearchState.gd: Last known position search
+# EnemyHurtState.gd: Damage stagger
+# EnemyMovementComponent.gd: Movement interface
+# README_ENEMY_AI.md: Complete documentation
+
+# NAMING CONVENTIONS
+# ==================
+# States: Enemy{Behavior}State (e.g., EnemyChaseState)
+# Enemy types: {Type}Enemy (e.g., FastEnemy, HeavyEnemy)
+# Scene files: {Type}Enemy.tscn or Enemy.tscn for base
+
+# INTEGRATION NOTES
+# =================
+# - Enemies use the same State/StateMachine pattern as Player
+# - Stomp kills handled in Enemy._check_player_collision()
+# - Damage dealt via Enemy._damage_player() which notifies HealthManager
+# - Room changes may require re-acquiring player target
+# - Physics priority: Enemy runs after Player (priority 100)
+# - State machine runs before Enemy (priority 50)

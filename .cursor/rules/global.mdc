@@ -32,6 +32,8 @@
 # - State Machine System: Clean entity behaviors with State/StateMachine pattern
 # - SmartCamera: Room-aware camera that follows player within boundaries
 # - GameColors: Centralized color palette with 15 colors from retro-saffron palette
+# - Enemy AI System: Vision-based detection, awareness states, personality system
+#   (See .cursor/rules/enemy-ai-system.mdc for details)
 
 # Development Guidelines:
 # 1. Always read PROJECT_FRAMEWORK_DOCUMENTATION.md before making changes
@@ -52,6 +54,14 @@
 # - Implement enter(), exit(), update(), physics_update()
 # - Add to StateMachine as child node
 # - Set up transitions in check_transitions()
+
+# When creating new enemy types:
+# - See .cursor/rules/enemy-ai-system.mdc for complete guide
+# - Duplicate Enemy.tscn and adjust Inspector parameters, OR
+# - Extend Enemy.gd and override stats in _ready()
+# - Use personality system (aggression, caution, persistence) for varied behaviors
+# - Available presets: Grunt, Rusher, Stalker, Brute
+# - Full documentation: scripts/enemies/README_ENEMY_AI.md
 
 # When creating new collectibles:
 # - Extend Collectible class

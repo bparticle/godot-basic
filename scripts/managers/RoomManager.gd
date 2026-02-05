@@ -55,7 +55,7 @@ func cleanup():
 	player_instance = null
 	game_container = null
 
-func change_room(room_id: String):
+func change_room(room_id: String, play_spawn_animation: bool = false, override_spawn_pos: Vector2 = Vector2.INF):
 	if not rooms.has(room_id):
 		return
 	
@@ -85,6 +85,9 @@ func change_room(room_id: String):
 		push_warning("PlayerSpawn not found in %s" % current_room.scene_path)
 	var spawn_pos = spawn_marker.global_position if spawn_marker else Vector2(64, 64)
 	
+	# Use override spawn position if provided (for elevated spawn during respawn)
+	var actual_spawn_pos = override_spawn_pos if override_spawn_pos != Vector2.INF else spawn_pos
+	
 	# Spawn or move player
 	if not player_instance:
 		player_instance = player_scene.instantiate()
@@ -98,14 +101,14 @@ func change_room(room_id: String):
 		if game_container:
 			game_container.move_child(player_instance, -1)
 	
-	player_instance.global_position = spawn_pos
+	player_instance.global_position = actual_spawn_pos
 	# Ensure player starts stationary after room change
 	player_instance.velocity = Vector2.ZERO
-	# Reset death state when changing rooms
+	# Reset death state when changing rooms (with spawn animation if respawning from deathzone)
 	if player_instance.has_method("reset_death_state"):
-		player_instance.reset_death_state()
+		player_instance.reset_death_state(play_spawn_animation)
 	
-	# Update spawn point in HealthManager
+	# Update spawn point in HealthManager (use original spawn_pos, not elevated)
 	var health_manager = get_node_or_null("/root/HealthManager")
 	if health_manager:
 		health_manager.update_spawn_point(spawn_pos, room_id)
@@ -113,8 +116,11 @@ func change_room(room_id: String):
 	# Emit signal for camera and other systems
 	room_changed.emit(current_room, spawn_pos)
 
+# Spawn animation settings
+const SPAWN_ELEVATION: float = 24.0 # How high above spawn point to appear during spawn animation
+
 func respawn_player():
-	"""Respawn player at last spawn point"""
+	"""Respawn player at last spawn point after dying in a deathzone"""
 	var health_manager = get_node_or_null("/root/HealthManager")
 	if not health_manager:
 		return
@@ -122,18 +128,21 @@ func respawn_player():
 	var respawn_room = health_manager.get_last_room_id()
 	var respawn_pos = health_manager.get_last_spawn_position()
 	
+	# Elevate spawn position so player appears in the air and drops down after spawn animation
+	var elevated_respawn_pos = respawn_pos - Vector2(0, SPAWN_ELEVATION)
+	
 	# If we're in a different room, change to the respawn room
 	if current_room and current_room.id != respawn_room:
-		change_room(respawn_room)
+		change_room(respawn_room, true, elevated_respawn_pos) # Pass elevated position
 	else:
-		# Same room, just move player
+		# Same room, just move player to elevated position
 		if player_instance:
-			player_instance.global_position = respawn_pos
+			player_instance.global_position = elevated_respawn_pos
 			# Reset player velocity
 			player_instance.velocity = Vector2.ZERO
-			# Reset death state
+			# Reset death state with spawn animation (deathzone respawn)
 			if player_instance.has_method("reset_death_state"):
-				player_instance.reset_death_state()
+				player_instance.reset_death_state(true)
 
 func get_current_room() -> RoomData:
 	return current_room

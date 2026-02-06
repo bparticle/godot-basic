@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=4 uid="uid://c881bufqvgtmd"]
+[gd_scene load_steps=13 format=4 uid="uid://c881bufqvgtmd"]
 
 [ext_resource type="TileSet" uid="uid://xs6rof6jga3" path="res://resources/tilesets/background_tileset.tres" id="1_7qyro"]
 [ext_resource type="TileSet" uid="uid://ppoe7b0sfba6" path="res://resources/tilesets/arc_tileset.tres" id="1_tileset"]
@@ -7,8 +7,9 @@
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="5_gem_large"]
 [ext_resource type="PackedScene" uid="uid://cgh6nlq6jv47o" path="res://scenes/collectibles/GemSmall.tscn" id="6_gem_small"]
 [ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="7_key"]
-[ext_resource type="Script" uid="uid://bnvhxpft358sv" path="res://scripts/GameColors.gd" id="8_yj8na"]
-[ext_resource type="PackedScene" path="res://scenes/zones/RespawnZone.tscn" id="10_3d18c"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/Gun.tscn" id="8_gun"]
+[ext_resource type="Script" uid="uid://bnvhxpft358sv" path="res://scripts/GameColors.gd" id="9_yj8na"]
+[ext_resource type="PackedScene" uid="uid://b0kjl6qrqfspe" path="res://scenes/zones/RespawnZone.tscn" id="10_3d18c"]
 [ext_resource type="PackedScene" uid="uid://c06d73smk5kg1" path="res://scenes/enemies/Enemy2.tscn" id="10_enemy2"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
@@ -89,27 +90,27 @@ speed = 26.0
 detection_range = 150.0
 attack_range = 15.0
 
+[node name="Gun1" parent="." instance=ExtResource("8_gun")]
+position = Vector2(363, 433)
+
 [node name="GameColors" type="Node" parent="."]
-script = ExtResource("8_yj8na")
+script = ExtResource("9_yj8na")
 metadata/_custom_type_script = "uid://bnvhxpft358sv"
 
 [node name="RespawnZone" parent="." instance=ExtResource("10_3d18c")]
 position = Vector2(400, 510)
 zone_size = Vector2(250, 32)
 respawn_offset = Vector2(50, -50.375)
-spawn_elevation = null
 
 [node name="RespawnZone2" parent="." instance=ExtResource("10_3d18c")]
 position = Vector2(22, 509)
 zone_size = Vector2(100, 32)
 respawn_offset = Vector2(22.005, -42.925)
-spawn_elevation = null
 
 [node name="RespawnZone3" parent="." instance=ExtResource("10_3d18c")]
 position = Vector2(54, 224)
 zone_size = Vector2(49.71, 32.96)
 respawn_offset = Vector2(50.79, -50)
-spawn_elevation = null
 
 [node name="Monster3" parent="." instance=ExtResource("10_enemy2")]
 position = Vector2(117, 476)

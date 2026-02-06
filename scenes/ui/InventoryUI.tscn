@@ -80,3 +80,33 @@ offset_right = 0.0
 offset_bottom = 0.0
 stretch_mode = 2
 custom_minimum_size = Vector2(8, 8)
+
+[node name="GunSlot" type="PanelContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(10, 10)
+theme_override_styles/panel = SubResource("slot_style")
+size_flags_vertical = 4
+
+[node name="GunMargin" type="MarginContainer" parent="HBoxContainer/GunSlot"]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 1
+theme_override_constants/margin_right = 1
+theme_override_constants/margin_bottom = 1
+
+[node name="GunIcon" type="TextureRect" parent="HBoxContainer/GunSlot/GunMargin"]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+stretch_mode = 2
+custom_minimum_size = Vector2(8, 8)
+
+[node name="AmmoCount" type="Label" parent="HBoxContainer"]
+theme_override_colors/font_color = Color(0.176471, 0.996078, 0.223529, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "x0"
+size_flags_vertical = 4

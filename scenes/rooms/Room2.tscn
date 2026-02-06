@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://cd3gvrb77bjgq"]
+[gd_scene load_steps=15 format=4 uid="uid://cd3gvrb77bjgq"]
 
 [ext_resource type="TileSet" uid="uid://xs6rof6jga3" path="res://resources/tilesets/background_tileset.tres" id="1_e0shg"]
 [ext_resource type="Texture2D" uid="uid://cwdehiv57xp06" path="res://assets/tiles/arc_tiles.png" id="1_flag_tex"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://bpxv8kqxqxqxq" path="res://scenes/collectibles/Key.tscn" id="4_key"]
 [ext_resource type="PackedScene" uid="uid://cggf6qq35h4wv" path="res://scenes/collectibles/GemLarge.tscn" id="7_50jb0"]
 [ext_resource type="PackedScene" uid="uid://c06d73smk5kg1" path="res://scenes/enemies/Enemy2.tscn" id="9_mwb0y"]
+[ext_resource type="PackedScene" path="res://scenes/collectibles/Gun.tscn" id="10_c0bta"]
 
 [sub_resource type="RectangleShape2D" id="1_rect_shape"]
 size = Vector2(8, 16)
@@ -114,3 +115,6 @@ position = Vector2(143, 110)
 speed = 26.0
 detection_range = 150.0
 attack_range = 15.0
+
+[node name="Gun1" parent="." instance=ExtResource("10_c0bta")]
+position = Vector2(183, 186)

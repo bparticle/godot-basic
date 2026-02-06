@@ -102,7 +102,7 @@ enum JumpPhase {
 
 # Gun system settings
 @export_group("Gun System")
-@export var has_gun: bool = true # Whether player currently has a gun
+# has_gun is now managed by HealthManager, not exported
 @export var fire_rate: float = 0.15 # Minimum time between shots (seconds)
 @export var muzzle_offset: Vector2 = Vector2(8, -8) # Offset from player center for bullet spawn
 @export var shoot_animation_duration: float = 0.08 # How long to show shoot animation
@@ -346,6 +346,14 @@ var touch_jump_hold_timer: float = 0.0
 
 # Damage / hazard handling
 @onready var health_manager = get_node("/root/HealthManager")
+
+# Gun state - read from HealthManager
+var has_gun: bool:
+	get:
+		if health_manager and health_manager.has_method("get_has_gun"):
+			return health_manager.get_has_gun()
+		return false
+
 @export var damage_immunity_duration_ms: int = 2000  # Platformer standard: ~2s invulnerability + blink after hit
 @export var stomp_bounce_velocity: float = -200.0
 @export var spike_knockback_speed: float = 80.0
@@ -583,6 +591,11 @@ func fire_bullet() -> void:
 	"""Fire a bullet in the direction the player is facing"""
 	if not bullet_scene:
 		return
+	
+	# Use ammo from HealthManager - this also handles removing the gun when empty
+	if health_manager and health_manager.has_method("use_ammo"):
+		if not health_manager.use_ammo():
+			return  # No ammo available
 	
 	# Use facing_direction which persists when player stops moving
 	var direction = facing_direction

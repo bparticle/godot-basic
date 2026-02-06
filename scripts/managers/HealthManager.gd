@@ -8,12 +8,15 @@ signal player_died()
 signal game_over()
 signal key_changed(has_key: bool)
 signal collectibles_changed(small_count: int, large_count: int, total_score: int)
+signal gun_changed(has_gun: bool, ammo: int)
 
 const MAX_LIVES = 3
 var current_lives = MAX_LIVES
 var last_spawn_position: Vector2
 var last_room_id: String
 var has_key: bool = false
+var has_gun: bool = false
+var ammo: int = 0
 var small_gems: int = 0
 var large_gems: int = 0
 var total_score: int = 0
@@ -57,6 +60,7 @@ func reset_health():
 	health_changed.emit(current_lives, MAX_LIVES)
 	reset_collectibles()
 	set_has_key(false)
+	set_has_gun(false)
 
 func take_damage(amount: int = 1):
 	"""Player takes damage and loses lives. No respawn - only invulnerability + blink on the player."""
@@ -132,6 +136,41 @@ func set_has_key(value: bool) -> void:
 
 func get_has_key() -> bool:
 	return has_key
+
+# Gun/Ammo system
+func set_has_gun(value: bool, bullets: int = 20) -> void:
+	"""Set gun state. When gaining gun, also sets ammo."""
+	if value:
+		has_gun = true
+		ammo = bullets
+	else:
+		has_gun = false
+		ammo = 0
+	gun_changed.emit(has_gun, ammo)
+
+func get_has_gun() -> bool:
+	return has_gun
+
+func get_ammo() -> int:
+	return ammo
+
+func use_ammo() -> bool:
+	"""Use one ammo. Returns true if successful, false if no ammo. Auto-removes gun when empty."""
+	if ammo <= 0:
+		return false
+	ammo -= 1
+	if ammo <= 0:
+		has_gun = false
+		ammo = 0
+	gun_changed.emit(has_gun, ammo)
+	return true
+
+func add_ammo(amount: int) -> void:
+	"""Add ammo (for bullet collectible). Only works if player has gun."""
+	if not has_gun:
+		return
+	ammo += amount
+	gun_changed.emit(has_gun, ammo)
 
 func reset_collectibles() -> void:
 	small_gems = 0

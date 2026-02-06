@@ -138,11 +138,13 @@ func get_has_key() -> bool:
 	return has_key
 
 # Gun/Ammo system
+const MAX_AMMO = 20
+
 func set_has_gun(value: bool, bullets: int = 20) -> void:
 	"""Set gun state. When gaining gun, also sets ammo."""
 	if value:
 		has_gun = true
-		ammo = bullets
+		ammo = min(bullets, MAX_AMMO)
 	else:
 		has_gun = false
 		ammo = 0
@@ -153,6 +155,12 @@ func get_has_gun() -> bool:
 
 func get_ammo() -> int:
 	return ammo
+
+func get_max_ammo() -> int:
+	return MAX_AMMO
+
+func is_ammo_full() -> bool:
+	return ammo >= MAX_AMMO
 
 func use_ammo() -> bool:
 	"""Use one ammo. Returns true if successful, false if no ammo. Auto-removes gun when empty."""
@@ -165,12 +173,15 @@ func use_ammo() -> bool:
 	gun_changed.emit(has_gun, ammo)
 	return true
 
-func add_ammo(amount: int) -> void:
-	"""Add ammo (for bullet collectible). Only works if player has gun."""
+func add_ammo(amount: int) -> bool:
+	"""Add ammo (for bullet collectible). Only works if player has gun and not at max. Returns true if ammo was added."""
 	if not has_gun:
-		return
-	ammo += amount
+		return false
+	if ammo >= MAX_AMMO:
+		return false
+	ammo = min(ammo + amount, MAX_AMMO)
 	gun_changed.emit(has_gun, ammo)
+	return true
 
 func reset_collectibles() -> void:
 	small_gems = 0

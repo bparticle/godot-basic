@@ -6,13 +6,19 @@ extends Control
 @onready var large_gem_icon: TextureRect = $HBoxContainer/LargeGemIcon
 @onready var small_gem_count: Label = $HBoxContainer/SmallGemCount
 @onready var large_gem_count: Label = $HBoxContainer/LargeGemCount
-@onready var gun_icon: TextureRect = $HBoxContainer/GunSlot/GunMargin/GunIcon
-@onready var ammo_count: Label = $HBoxContainer/AmmoCount
+@onready var gun_hud: PanelContainer = $HBoxContainer/GunHUD
+@onready var gun_icon: TextureRect = $HBoxContainer/GunHUD/GunHUDMargin/GunHUDContent/GunIcon
+@onready var ammo_grid: GridContainer = $HBoxContainer/GunHUD/GunHUDMargin/GunHUDContent/AmmoGrid
 var icons_texture: Texture2D
+var bullet_dots: Array[ColorRect] = []
+const MAX_VISIBLE_BULLETS = 20  # 2 rows x 10 columns
+const BULLET_DOT_SIZE = Vector2(1, 2)  # 1 wide, 2 tall - looks like a bullet
+const BULLET_COLOR = Color(0.176471, 0.996078, 0.223529, 1)  # Green
 
 func _ready():
 	icons_texture = preload("res://assets/tiles/pixelassets.png")
 	_setup_icons()
+	_setup_bullet_dots()
 	
 	if health_manager:
 		health_manager.key_changed.connect(_on_key_changed)
@@ -32,8 +38,17 @@ func _setup_icons() -> void:
 	large_gem_icon.texture = _make_atlas(Rect2(32, 0, 8, 8))
 	gun_icon.texture = _make_atlas(Rect2(0, 8, 8, 8))
 	key_icon.visible = false
-	gun_icon.visible = false
-	ammo_count.visible = false
+	gun_hud.visible = false
+
+func _setup_bullet_dots() -> void:
+	# Create bullet dot ColorRects for the grid
+	for i in range(MAX_VISIBLE_BULLETS):
+		var dot = ColorRect.new()
+		dot.custom_minimum_size = BULLET_DOT_SIZE
+		dot.color = BULLET_COLOR
+		dot.visible = false
+		ammo_grid.add_child(dot)
+		bullet_dots.append(dot)
 
 func _make_atlas(region: Rect2) -> AtlasTexture:
 	var atlas = AtlasTexture.new()
@@ -49,6 +64,9 @@ func _on_collectibles_changed(small_count: int, large_count: int, _total_score: 
 	large_gem_count.text = "x" + str(large_count)
 
 func _on_gun_changed(has_gun: bool, ammo: int) -> void:
-	gun_icon.visible = has_gun
-	ammo_count.visible = has_gun
-	ammo_count.text = "x" + str(ammo)
+	gun_hud.visible = has_gun
+	
+	# Update bullet dots visibility
+	var visible_bullets = min(ammo, MAX_VISIBLE_BULLETS)
+	for i in range(MAX_VISIBLE_BULLETS):
+		bullet_dots[i].visible = i < visible_bullets
